@@ -1,12 +1,12 @@
 from insights import parser, Parser
 from insights.specs import Specs
-from insights.parsr.query import from_dict, Result
+from insights.models import Dict
 
 
 @parser(Specs.meminfo)
 class MemInfo(Parser):
     def parse_content(self, content):
-        mem = {}
+        mem = Dict()
         for line in content:
             line = line.strip()
             k, v = line.split(":", 1)
@@ -15,4 +15,4 @@ class MemInfo(Parser):
             v = int(v.split()[0]) * 1024 if v.endswith("kB") else int(v)
             mem[k] = v
 
-        self.doc = Result(children=[from_dict(mem)])
+        self.doc = mem

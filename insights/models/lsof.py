@@ -1,6 +1,6 @@
 from insights import parser, Parser
 from insights.specs import Specs
-from insights.models import from_list
+from insights.models import Dict, List
 
 
 def get_intervals(line):
@@ -33,7 +33,7 @@ class LSOF(Parser):
         top = content[0]
         header_intervals = get_intervals(top)
         headers = {top[l:r]: (l, r) for l, r in header_intervals}
-        results = []
+        results = List()
         for line in content[1:]:
             one = []
             intervals = get_intervals(line)
@@ -43,5 +43,5 @@ class LSOF(Parser):
                     if intersect(i, h):
                         one.append((key, val))
                         break
-            results.append(dict(one))
-        self.doc = from_list(results)
+            results.append(Dict(one, parent=results))
+        self.doc = results

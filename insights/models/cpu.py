@@ -7,13 +7,13 @@ from insights.models import Dict, List
 class CPU(Parser):
     def parse_content(self, content):
         results = List()
-        cpu = Dict()
+        cpu = Dict(parent=results)
         for line in content:
             line = line.strip()
             if not line:
                 if cpu:
                     results.append(cpu)
-                    cpu = Dict()
+                    cpu = Dict(parent=results)
                 continue
             key, value = line.split(":", 1)
             key = key.strip().replace(" ", "_").lower()

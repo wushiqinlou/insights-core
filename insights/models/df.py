@@ -18,16 +18,16 @@ class DiskBase(Parser):
         return results
 
     def parse_content(self, content):
-        results = []
+        results = List()
         num = len(DiskBase.header) - 1
         for line in content[1:]:
             parts = line.strip().split(None, num)
             parts = self.fix_types(parts)
-            data = Dict(zip(DiskBase.header, parts))
+            data = Dict(zip(DiskBase.header, parts), parent=results)
             data["capacity"] = data["capacity"] / 100
             results.append(data)
 
-        self.doc = List(children=results)
+        self.doc = results
 
 
 @parser(Specs.df__alP)

@@ -12,7 +12,7 @@ class PS(Parser):
         l = len(PS.header) - 1
         for line in content[1:]:
             parts = [l.strip() for l in line.split(None, l)]
-            data = Dict(zip(PS.header, parts))
+            data = Dict(zip(PS.header, parts), parent=results)
             data["pid"] = int(data["pid"])
             data["cpu"] = float(data["cpu"])
             data["mem"] = float(data["mem"])
