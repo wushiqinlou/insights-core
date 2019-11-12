@@ -101,8 +101,6 @@ from contextlib import contextmanager
 from insights import (apply_configs, create_context, dr, extract, HostContext,
                       load_default_plugins)
 from insights.core import filters
-from IPython import embed
-from IPython.terminal.embed import InteractiveShellEmbed
 
 
 try:
@@ -116,17 +114,6 @@ except:
     class C(object):
         Fore = Pass()
         Style = Pass()
-
-
-def get_ipshell():
-    banner = 'Starting IPython Interpreter Now \n'
-    exit_msg = '\nExiting IPython Interpreter Now'
-
-    try:
-        return InteractiveShellEmbed(banner1=banner, exit_msg=exit_msg)
-    except:
-        print("*** Error initializing colorized shell, failing over to non-colorized shell ***\n\n")
-        return embed
 
 
 def parse_args():
@@ -210,8 +197,14 @@ def run(component, archive=None):
             print("In [1]: {}.<property_name>".format(name))
             print("Out[1]: <property value>\n")
             print("To exit ipython enter 'exit' and hit enter or use 'CTL D'\n")
-            ipshell = get_ipshell()
-            ipshell()
+
+            import IPython
+            from traitlets.config.loader import Config
+
+            IPython.core.completer.Completer.use_jedi = False
+            c = Config()
+            c.TerminalInteractiveShell.banner1 = "Starting insights inspector"
+            IPython.start_ipython([], user_ns=locals(), config=c)
         else:
             dump_error(component, broker)
             return sys.exit(1)
