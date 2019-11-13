@@ -1,8 +1,9 @@
+import uuid
 from functools import reduce
 from itertools import chain
 
 from insights.parsr.query.boolean import All, Any, Boolean, Not, Predicate, pred
-from insights.parsr.query import ge, gt, le, lt
+from insights.parsr.query import ge, gt, le, lt, matches
 
 
 _NONE = object()
@@ -17,6 +18,18 @@ class ChildQuery(Boolean):
 
     def __invert__(self):
         return ChildNot(self)
+
+
+class ChildAll(ChildQuery, All):
+    pass
+
+
+class ChildAny(ChildQuery, Any):
+    pass
+
+
+class ChildNot(ChildQuery, Not):
+    pass
 
 
 class SimpleQuery(ChildQuery):
@@ -69,20 +82,13 @@ class SimpleQuery(ChildQuery):
     def test(self, n):
         return self.expr.test(n)
 
-    def __repr__(self):
-        return f"q({self.expr})"
-
 
 class ColQuery(SimpleQuery):
     def __init__(self, name):
         self.name = name
 
-    def __gt__(self, other):
-        self.expr = self.create_expr(self.name, gt(other))
-        return self
-
-    def __ge__(self, other):
-        self.expr = self.create_expr(self.name, ge(other))
+    def matches(self, other):
+        self.expr = self.create_expr(self.name, matches(other))
         return self
 
     def __lt__(self, other):
@@ -101,28 +107,26 @@ class ColQuery(SimpleQuery):
         self.expr = ~self.create_expr(self.name, other)
         return self
 
+    def __ge__(self, other):
+        self.expr = self.create_expr(self.name, ge(other))
+        return self
 
-class ChildAll(ChildQuery, All):
-    pass
-
-
-class ChildAny(ChildQuery, Any):
-    pass
-
-
-class ChildNot(ChildQuery, Not):
-    pass
+    def __gt__(self, other):
+        self.expr = self.create_expr(self.name, gt(other))
+        return self
 
 
+col = ColQuery
 child_query = SimpleQuery
 make_child_query = SimpleQuery
 
 
 class Base(object):
     def __init__(self, data=None, parent=None):
-        # dicts and lists aren't hashable.  I know I mean instance identity, so
-        # I use the original id as a stand-in.
-        self._id = id(self)
+        # dicts and lists aren't hashable. I know I mean instance identity and
+        # don't care if it gets relocated. I just need a cheap, unique id.
+        # This will bite me later by showing up as an unreproducible bug.
+        self._id = uuid.uuid4()
         self.parent = parent
         if data is not None:
             super().__init__(data)
@@ -150,7 +154,7 @@ class Dict(Base, dict):
         def both(i):
             k, v = i
             return n.test(k) and a.test(v)
-        return pred(both)
+        return both
 
     def name_predicate(self, n, a):
         def name(i):
@@ -159,7 +163,7 @@ class Dict(Base, dict):
                 return n.test(k) and v == a
             else:
                 return n.test(k)
-        return pred(name)
+        return name
 
     def attr_predicate(self, n, a):
         def attr(i):
@@ -167,7 +171,7 @@ class Dict(Base, dict):
             if n is None:
                 return a.test(v)
             return k == n and a.test(v)
-        return pred(attr)
+        return attr
 
     def neither_predicate(self, n, a):
         def neither(i):
@@ -179,7 +183,7 @@ class Dict(Base, dict):
             elif n is None:
                 return v == a
             return k == n and v == a
-        return pred(neither)
+        return neither
 
     def desugar(self, name, attr=_NONE):
         if isinstance(name, Predicate) and isinstance(attr, Predicate):
@@ -190,10 +194,13 @@ class Dict(Base, dict):
             return self.attr_predicate(name, attr)
         return self.neither_predicate(name, attr)
 
+    def _query(self, query):
+        q = self.desugar(*query) if isinstance(query, tuple) else self.desugar(query)
+        return List([v for k, v in self.items() if q((k, v))], parent=self)
+
     def __getitem__(self, query):
-        if isinstance(query, (tuple, Predicate)):
-            query = self.desugar(*query) if isinstance(query, tuple) else self.desugar(query)
-            return Dict([i for i in self.items() if query.test(i)], parent=self)
+        if query is None or isinstance(query, (tuple, Predicate)):
+            return self._query(query)
 
         res = super().__getitem__(query)
         if isinstance(res, dict):
@@ -224,7 +231,7 @@ class List(Base, list):
                         res.extend(v)
                     else:
                         res.append(v)
-            except Exception:
+            except Exception as ex:
                 pass
         return res
 
@@ -241,7 +248,7 @@ class List(Base, list):
             query = pred(name_query)
             return List(i for i in self if query.test(i))
 
-        return self[name_query, value_query].parents
+        return self[name_query, value_query]
 
     def __contains__(self, key):
         for i in self:
@@ -299,6 +306,84 @@ class List(Base, list):
                 results.append(parent)
                 seen.add(parent._id)
         return results
+
+    def find(self, *queries):
+        query = compile_queries(*queries)
+        return select(query, self, deep=True)
+
+
+def _flatten(nodes):
+    """
+    Flatten the config tree into a list of nodes.
+    """
+    def inner(n):
+        res = [n]
+        if isinstance(n, list):
+            res.extend(chain.from_iterable(inner(c) for c in n))
+        if isinstance(n, dict):
+            res.extend(chain.from_iterable(inner(c) for c in n.values()))
+        return res
+    return list(chain.from_iterable(inner(n) for n in nodes))
+
+
+def compile_queries(*queries):
+    """
+    compile_queries returns a function that will execute a list of query
+    expressions against an :py:class:`Entry`. The first query is run against
+    the current entry's children, the second query is run against the children
+    of the children remaining from the first query, and so on.
+
+    If a query is a single object, it matches against the name of an Entry. If
+    it's a tuple, the first element matches against the name, and subsequent
+    elements are tried against each individual attribute. The attribute results
+    are `or'd` together and that result is `anded` with the name query. Any
+    query that raises an exception is treated as ``False``.
+    """
+    def match(qs, nodes):
+        q = qs[0]
+        res = List()
+        for n in nodes:
+            try:
+                v = n[q]
+                if v:
+                    if isinstance(v, list):
+                        res.extend(v)
+                    else:
+                        res.append(v)
+            except:
+                pass
+        qs = qs[1:]
+        if qs:
+            return match(qs, res)
+        return res
+
+    def inner(nodes):
+        return List(match(queries, nodes))
+    return inner
+
+
+def select(query, nodes, deep=False, roots=False):
+    """
+    select runs query, a function returned by :py:func:`compile_queries`,
+    against a list of :py:class:`Entry` instances. If you pass ``deep=True``,
+    select recursively walks each entry in the list and accumulates the
+    results of running the query against it. If you pass ``roots=True``,
+    select returns the deduplicated set of final ancestors of all successful
+    queries. Otherwise, it returns the matching entries.
+    """
+    results = query(_flatten(nodes)) if deep else query(nodes)
+
+    if not roots:
+        return results
+
+    seen = set()
+    top = List()
+    for r in results:
+        root = r.root
+        if root not in seen:
+            seen.add(root)
+            top.append(root)
+    return top
 
 
 def from_list(l, parent=None):

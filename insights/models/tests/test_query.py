@@ -49,21 +49,21 @@ def test_dict_access():
 
 def test_dict_name_query():
     res = api[startswith("k")]
-    assert res["kind"] == "KubeAPIServer"
+    assert res == ["KubeAPIServer"]
 
 
 def test_dict_tuple_access():
     res = api["kind", "KubeAPIServer"]
-    assert res.kind == "KubeAPIServer"
+    assert res == ["KubeAPIServer"]
 
     res = api["kind", startswith("Kube")]
-    assert res.kind == "KubeAPIServer"
+    assert res == ["KubeAPIServer"]
 
     res = api[startswith("k"), startswith("Kube")]
-    assert res.kind == "KubeAPIServer"
+    assert res == ["KubeAPIServer"]
 
     res = api[None, startswith("Kube")]
-    assert res.kind == "KubeAPIServer"
+    assert res == ["KubeAPIServer"]
 
 
 def test_list_access():

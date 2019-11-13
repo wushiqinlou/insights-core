@@ -80,6 +80,12 @@ def test_where_lambda():
     assert len(res) == 1, res
 
 
+def test_where_lambda_nest():
+    conf = List([api, sched])
+    res = conf.status.conditions.where(lambda c: c.type == "Ready")
+    assert len(res) == 2, res
+
+
 def test_where_child_query():
     conf = List([api, sched])
     res = conf.where(q("kind", "KubeAPIServer"))
@@ -116,4 +122,10 @@ def test_where_child_query_both_predicate():
     conf = List([api, sched])
     p = q(startswith("ki"), startswith("Kube"))
     res = conf.where(p)
+    assert len(res) == 2, res
+
+
+def test_where_list():
+    conf = List([api, sched])
+    res = conf.status.where(lambda s: "Ready" in s.conditions.type)
     assert len(res) == 2, res
