@@ -60,16 +60,17 @@ def main():
     from insights.parsr.query import (lt, le, eq, gt, ge, isin, contains,  # noqa: F403
             startswith, endswith, ieq, icontains, istartswith, iendswith,  # noqa: F403
             matches)  # noqa: F403
-    from insights.models import make_child_query  # noqa: F403
-    q = make_child_query  # noqa: F405
+    from insights.models import SimpleQuery, ColQuery  # noqa: F403
+    q = SimpleQuery  # noqa: F405
+    c = ColQuery  # noqa: F405
 
     import IPython
     from traitlets.config.loader import Config
 
     IPython.core.completer.Completer.use_jedi = False
-    c = Config()
-    c.TerminalInteractiveShell.banner1 = banner
-    IPython.start_ipython([], user_ns=locals(), config=c)
+    cfg = Config()
+    cfg.TerminalInteractiveShell.banner1 = banner
+    IPython.start_ipython([], user_ns=locals(), config=cfg)
 
 
 if __name__ == "__main__":

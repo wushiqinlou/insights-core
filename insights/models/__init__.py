@@ -1,9 +1,9 @@
 import uuid
 from functools import reduce
 from itertools import chain
-
 from insights.parsr.query.boolean import All, Any, Boolean, Not, Predicate, pred
-from insights.parsr.query import ge, gt, le, lt, matches
+from insights.parsr.query import (ge, gt, le, lt, matches, startswith,
+                                  istartswith, endswith, iendswith, isin, contains)
 
 
 _NONE = object()
@@ -34,17 +34,17 @@ class ChildNot(ChildQuery, Not):
 
 class SimpleQuery(ChildQuery):
     def __init__(self, name, value=_NONE):
-        self.expr = self.create_expr(name, value)
+        self.expr = self._create_expr(name, value)
 
-    def create_expr(self, name, value):
-        return self.desugar(name, value)
+    def _create_expr(self, name, value):
+        return self._desugar(name, value)
 
-    def both_predicates(self, n, a):
+    def _both_predicates(self, n, a):
         def both(d):
             return any(n.test(k) and a.test(d[k]) for k in d)
         return pred(both)
 
-    def name_predicate(self, n, a):
+    def _name_predicate(self, n, a):
         def name(d):
             if a is not _NONE:
                 return any(n.test(k) and d[k] == a for k in d)
@@ -52,14 +52,14 @@ class SimpleQuery(ChildQuery):
                 return any(n.test(k) for k in d)
         return pred(name)
 
-    def attr_predicate(self, n, a):
+    def _attr_predicate(self, n, a):
         def attr(d):
             if n is None:
                 return any(a.test(v) for v in d.values())
             return a.test(d[n])
         return pred(attr)
 
-    def neither_predicate(self, n, a):
+    def _neither_predicate(self, n, a):
         def neither(d):
             if n is None and a is _NONE:
                 return True
@@ -70,14 +70,14 @@ class SimpleQuery(ChildQuery):
             return d[n] == a
         return pred(neither)
 
-    def desugar(self, name, attr=_NONE):
+    def _desugar(self, name, attr=_NONE):
         if isinstance(name, Predicate) and isinstance(attr, Predicate):
-            return self.both_predicates(name, attr)
+            return self._both_predicates(name, attr)
         elif isinstance(name, Predicate):
-            return self.name_predicate(name, attr)
+            return self._name_predicate(name, attr)
         elif isinstance(attr, Predicate):
-            return self.attr_predicate(name, attr)
-        return self.neither_predicate(name, attr)
+            return self._attr_predicate(name, attr)
+        return self._neither_predicate(name, attr)
 
     def test(self, n):
         return self.expr.test(n)
@@ -88,31 +88,55 @@ class ColQuery(SimpleQuery):
         self.name = name
 
     def matches(self, other):
-        self.expr = self.create_expr(self.name, matches(other))
+        self.expr = self._create_expr(self.name, matches(other))
+        return self
+
+    def isin(self, other):
+        self.expr = self._create_expr(self.name, isin(other))
+        return self
+
+    def startswith(self, other):
+        self.expr = self._create_expr(self.name, startswith(other))
+        return self
+
+    def istartswith(self, other):
+        self.expr = self._create_expr(self.name, istartswith(other))
+        return self
+
+    def endswith(self, other):
+        self.expr = self._create_expr(self.name, endswith(other))
+        return self
+
+    def iendswith(self, other):
+        self.expr = self._create_expr(self.name, iendswith(other))
+        return self
+
+    def __contains__(self, other):
+        self.expr = self._create_expr(self.name, contains(other))
         return self
 
     def __lt__(self, other):
-        self.expr = self.create_expr(self.name, lt(other))
+        self.expr = self._create_expr(self.name, lt(other))
         return self
 
     def __le__(self, other):
-        self.expr = self.create_expr(self.name, le(other))
+        self.expr = self._create_expr(self.name, le(other))
         return self
 
     def __eq__(self, other):
-        self.expr = self.create_expr(self.name, other)
+        self.expr = self._create_expr(self.name, other)
         return self
 
     def __ne__(self, other):
-        self.expr = ~self.create_expr(self.name, other)
+        self.expr = ~self._create_expr(self.name, other)
         return self
 
     def __ge__(self, other):
-        self.expr = self.create_expr(self.name, ge(other))
+        self.expr = self._create_expr(self.name, ge(other))
         return self
 
     def __gt__(self, other):
-        self.expr = self.create_expr(self.name, gt(other))
+        self.expr = self._create_expr(self.name, gt(other))
         return self
 
 
@@ -150,13 +174,13 @@ class Dict(Base, dict):
     def __dir__(self):
         return list(self.keys()) + object.__dir__(self)
 
-    def both_predicates(self, n, a):
+    def _both_predicates(self, n, a):
         def both(i):
             k, v = i
             return n.test(k) and a.test(v)
         return both
 
-    def name_predicate(self, n, a):
+    def _name_predicate(self, n, a):
         def name(i):
             k, v = i
             if a is not _NONE:
@@ -165,7 +189,7 @@ class Dict(Base, dict):
                 return n.test(k)
         return name
 
-    def attr_predicate(self, n, a):
+    def _attr_predicate(self, n, a):
         def attr(i):
             k, v = i
             if n is None:
@@ -173,7 +197,7 @@ class Dict(Base, dict):
             return k == n and a.test(v)
         return attr
 
-    def neither_predicate(self, n, a):
+    def _neither_predicate(self, n, a):
         def neither(i):
             k, v = i
             if n is None and a is _NONE:
@@ -185,17 +209,17 @@ class Dict(Base, dict):
             return k == n and v == a
         return neither
 
-    def desugar(self, name, attr=_NONE):
+    def _desugar(self, name, attr=_NONE):
         if isinstance(name, Predicate) and isinstance(attr, Predicate):
-            return self.both_predicates(name, attr)
+            return self._both_predicates(name, attr)
         elif isinstance(name, Predicate):
-            return self.name_predicate(name, attr)
+            return self._name_predicate(name, attr)
         elif isinstance(attr, Predicate):
-            return self.attr_predicate(name, attr)
-        return self.neither_predicate(name, attr)
+            return self._attr_predicate(name, attr)
+        return self._neither_predicate(name, attr)
 
     def _query(self, query):
-        q = self.desugar(*query) if isinstance(query, tuple) else self.desugar(query)
+        q = self._desugar(*query) if isinstance(query, tuple) else self._desugar(query)
         return List([v for k, v in self.items() if q((k, v))], parent=self)
 
     def __getitem__(self, query):
@@ -248,7 +272,8 @@ class List(Base, list):
             query = pred(name_query)
             return List(i for i in self if query.test(i))
 
-        return self[name_query, value_query]
+        query = SimpleQuery(name_query, value_query)
+        return List(i for i in self if query.test(i))
 
     def __contains__(self, key):
         for i in self:

@@ -1,26 +1,22 @@
-from insights import parser, Parser
+from insights import parser
 from insights.specs import Specs
 from insights.models import Dict, List
 
 
 @parser(Specs.cpuinfo)
-class CPU(Parser):
-    def parse_content(self, content):
-        results = List()
-        cpu = Dict(parent=results)
-        for line in content:
-            line = line.strip()
-            if not line:
-                if cpu:
-                    results.append(cpu)
-                    cpu = Dict(parent=results)
-                continue
-            key, value = line.split(":", 1)
-            key = key.strip().replace(" ", "_").lower()
-            value = value.strip()
-            cpu[key] = value
+def cpu(ctx):
+    results = List()
+    cpu = Dict(parent=results)
+    for line in ctx.content:
+        line = line.strip()
+        if not line:
+            if cpu:
+                results.append(cpu)
+                cpu = Dict(parent=results)
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip().replace(" ", "_").lower()
+        value = value.strip()
+        cpu[key] = value
 
-        self.data = results
-
-    def where(self, pred):
-        return self.data.where(pred)
+    return results

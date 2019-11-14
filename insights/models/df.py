@@ -1,6 +1,6 @@
 from insights import combiner, parser, Parser
 from insights.specs import Specs
-from insights.parsr.query import Dict, List
+from insights.models import Dict, List
 
 
 class DiskBase(Parser):
@@ -41,5 +41,7 @@ class Disk_al(DiskBase):
 
 
 @combiner([Disk_alp, Disk_al])
-def Disk(*args):
-    return [a for a in args if a][0]
+def disk(*args):
+    for a in args:
+        if a is not None:
+            return a.doc

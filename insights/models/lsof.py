@@ -1,4 +1,4 @@
-from insights import parser, Parser
+from insights import parser
 from insights.specs import Specs
 from insights.models import Dict, List
 
@@ -28,20 +28,20 @@ def intersect(a, b):
 
 
 @parser(Specs.lsof)
-class LSOF(Parser):
-    def parse_content(self, content):
-        top = content[0]
-        header_intervals = get_intervals(top)
-        headers = {top[l:r]: (l, r) for l, r in header_intervals}
-        results = List()
-        for line in content[1:]:
-            one = []
-            intervals = get_intervals(line)
-            for i in intervals:
-                val = line[slice(*i)]
-                for key, h in headers.items():
-                    if intersect(i, h):
-                        one.append((key, val))
-                        break
-            results.append(Dict(one, parent=results))
-        self.doc = results
+def lsof(ctx):
+    content = ctx.content
+    top = content[0]
+    header_intervals = get_intervals(top)
+    headers = {top[l:r].lower(): (l, r) for l, r in header_intervals}
+    results = List()
+    for line in content[1:]:
+        one = []
+        intervals = get_intervals(line)
+        for i in intervals:
+            val = line[slice(*i)]
+            for key, h in headers.items():
+                if intersect(i, h):
+                    one.append((key, val))
+                    break
+        results.append(Dict(one, parent=results))
+    return results
