@@ -84,6 +84,10 @@ class SimpleQuery(ChildQuery):
 
 
 class ColQuery(SimpleQuery):
+    """
+    Like a SimpleQuery, but the value predicate is bound with operator
+    overloading instead of in a second parameter of the initializer.
+    """
     def __init__(self, name):
         self.name = name
 
@@ -140,9 +144,10 @@ class ColQuery(SimpleQuery):
         return self
 
 
-col = ColQuery
-child_query = SimpleQuery
+# for backward compat with the query implementation in parsr.query.
 make_child_query = SimpleQuery
+child_query = SimpleQuery
+col = ColQuery
 
 
 class Base(object):
@@ -336,6 +341,39 @@ class List(Base, list):
         query = compile_queries(*queries)
         return select(query, self, deep=True)
 
+    @property
+    def string_value(self):
+        """
+        Returns the string representation of all attributes separated by a
+        single whilespace.
+        """
+        t = " ".join(["%s"] * len(self))
+        return t % tuple(self)
+
+    @property
+    def values(self):
+        """
+        Returns the values of all the children as a list.
+        """
+        return self
+
+    @property
+    def value(self):
+        """
+        Returns ``None`` if no attributes exist, the first attribute if only
+        one exists, or the ``string_value`` if more than one exists.
+        """
+        if len(self) == 1:
+            return self[0]
+        return self.string_value if len(self) > 1 else None
+
+    @property
+    def unique_values(self):
+        """
+        Returns the unique values of all the children as a list.
+        """
+        return sorted(set(self))
+
 
 def _flatten(nodes):
     """
@@ -396,19 +434,7 @@ def select(query, nodes, deep=False, roots=False):
     select returns the deduplicated set of final ancestors of all successful
     queries. Otherwise, it returns the matching entries.
     """
-    results = query(_flatten(nodes)) if deep else query(nodes)
-
-    if not roots:
-        return results
-
-    seen = set()
-    top = List()
-    for r in results:
-        root = r.root
-        if root not in seen:
-            seen.add(root)
-            top.append(root)
-    return top
+    return query(_flatten(nodes))
 
 
 def from_list(l, parent=None):
