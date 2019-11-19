@@ -1,7 +1,7 @@
 import uuid
 from functools import reduce
 from itertools import chain
-from insights.parsr.query.boolean import All, Any, Boolean, Not, Predicate, pred
+from insights.parsr.query.boolean import All, Any, Boolean, Not, pred
 from insights.parsr.query import (ge, gt, le, lt, matches, startswith,
                                   istartswith, endswith, iendswith, isin, contains)
 
@@ -39,12 +39,12 @@ class SimpleQuery(ChildQuery):
     def _create_expr(self, name, value):
         return self._desugar(name, value)
 
-    def _both_predicates(self, n, a):
+    def _both_booleans(self, n, a):
         def both(d):
             return any(n.test(k) and a.test(d[k]) for k in d)
         return pred(both)
 
-    def _name_predicate(self, n, a):
+    def _name_boolean(self, n, a):
         def name(d):
             if a is not _NONE:
                 return any(n.test(k) and d[k] == a for k in d)
@@ -52,14 +52,14 @@ class SimpleQuery(ChildQuery):
                 return any(n.test(k) for k in d)
         return pred(name)
 
-    def _attr_predicate(self, n, a):
+    def _attr_boolean(self, n, a):
         def attr(d):
             if n is None:
                 return any(a.test(v) for v in d.values())
             return a.test(d[n])
         return pred(attr)
 
-    def _neither_predicate(self, n, a):
+    def _neither_boolean(self, n, a):
         def neither(d):
             if n is None and a is _NONE:
                 return True
@@ -71,13 +71,13 @@ class SimpleQuery(ChildQuery):
         return pred(neither)
 
     def _desugar(self, name, attr=_NONE):
-        if isinstance(name, Predicate) and isinstance(attr, Predicate):
-            return self._both_predicates(name, attr)
-        elif isinstance(name, Predicate):
-            return self._name_predicate(name, attr)
-        elif isinstance(attr, Predicate):
-            return self._attr_predicate(name, attr)
-        return self._neither_predicate(name, attr)
+        if isinstance(name, Boolean) and isinstance(attr, Boolean):
+            return self._both_booleans(name, attr)
+        elif isinstance(name, Boolean):
+            return self._name_boolean(name, attr)
+        elif isinstance(attr, Boolean):
+            return self._attr_boolean(name, attr)
+        return self._neither_boolean(name, attr)
 
     def test(self, n):
         return self.expr.test(n)
@@ -174,13 +174,13 @@ class Dict(Base, dict):
     def __dir__(self):
         return list(self.keys()) + object.__dir__(self)
 
-    def _both_predicates(self, n, a):
+    def _both_booleans(self, n, a):
         def both(i):
             k, v = i
             return n.test(k) and a.test(v)
         return both
 
-    def _name_predicate(self, n, a):
+    def _name_boolean(self, n, a):
         def name(i):
             k, v = i
             if a is not _NONE:
@@ -189,7 +189,7 @@ class Dict(Base, dict):
                 return n.test(k)
         return name
 
-    def _attr_predicate(self, n, a):
+    def _attr_boolean(self, n, a):
         def attr(i):
             k, v = i
             if n is None:
@@ -197,7 +197,7 @@ class Dict(Base, dict):
             return k == n and a.test(v)
         return attr
 
-    def _neither_predicate(self, n, a):
+    def _neither_boolean(self, n, a):
         def neither(i):
             k, v = i
             if n is None and a is _NONE:
@@ -210,20 +210,20 @@ class Dict(Base, dict):
         return neither
 
     def _desugar(self, name, attr=_NONE):
-        if isinstance(name, Predicate) and isinstance(attr, Predicate):
-            return self._both_predicates(name, attr)
-        elif isinstance(name, Predicate):
-            return self._name_predicate(name, attr)
-        elif isinstance(attr, Predicate):
-            return self._attr_predicate(name, attr)
-        return self._neither_predicate(name, attr)
+        if isinstance(name, Boolean) and isinstance(attr, Boolean):
+            return self._both_booleans(name, attr)
+        elif isinstance(name, Boolean):
+            return self._name_boolean(name, attr)
+        elif isinstance(attr, Boolean):
+            return self._attr_boolean(name, attr)
+        return self._neither_boolean(name, attr)
 
     def _query(self, query):
         q = self._desugar(*query) if isinstance(query, tuple) else self._desugar(query)
         return List([v for k, v in self.items() if q((k, v))], parent=self)
 
     def __getitem__(self, query):
-        if query is None or isinstance(query, (tuple, Predicate)):
+        if query is None or isinstance(query, (tuple, Boolean)):
             return self._query(query)
 
         res = super().__getitem__(query)
@@ -268,7 +268,7 @@ class List(Base, list):
         if isinstance(name_query, ChildQuery):
             return List(i for i in self if name_query.test(i))
 
-        if callable(name_query) and not isinstance(name_query, Predicate):
+        if callable(name_query) and not isinstance(name_query, Boolean):
             query = pred(name_query)
             return List(i for i in self if query.test(i))
 
@@ -288,7 +288,7 @@ class List(Base, list):
         return self.keys() + object.__dir__(self)
 
     def upto(self, name):
-        if isinstance(name, Predicate):
+        if isinstance(name, Boolean):
             query = name
         elif isinstance(name, str):
             query = pred(lambda n: name in n.parent if n.parent else False)

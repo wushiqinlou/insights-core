@@ -1,4 +1,4 @@
-from insights.parsr.query import startswith
+from insights.parsr.query import endswith, startswith
 from insights.models import Dict, List
 
 api = Dict({
@@ -87,6 +87,9 @@ def test_list_query_access():
     assert res, res
 
     res = conf["kind", startswith("Kube")]
+    assert res, res
+
+    res = conf["kind", startswith("Kube") & endswith("Server")]
     assert res, res
 
     res = conf[startswith("k"), "KubeAPIServer"]
