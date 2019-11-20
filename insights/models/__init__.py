@@ -158,9 +158,9 @@ class Base(object):
         self._id = uuid.uuid4()
         self.parent = parent
         if data is not None:
-            super().__init__(data)
+            super(Base, self).__init__(data)
         else:
-            super().__init__()
+            super(Base, self).__init__()
 
     @property
     def root(self):
@@ -231,7 +231,7 @@ class Dict(Base, dict):
         if query is None or isinstance(query, (tuple, Boolean)):
             return self._query(query)
 
-        res = super().__getitem__(query)
+        res = super(Dict, self).__getitem__(query)
         if isinstance(res, dict):
             return Dict(res, parent=self)
         elif isinstance(res, list):
@@ -267,7 +267,7 @@ class List(Base, list):
     def __getitem__(self, query):
         if not isinstance(query, (int, slice)):
             return self._query(query)
-        return super().__getitem__(query)
+        return super(List, self).__getitem__(query)
 
     def where(self, name_query, value_query=_NONE):
         if isinstance(name_query, ChildQuery):
