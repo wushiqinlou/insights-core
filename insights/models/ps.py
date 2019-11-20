@@ -7,9 +7,9 @@ from insights.specs import Specs
 def ps(ctx):
     results = List()
     header = ["user", "pid", "cpu", "mem", "vsz", "rss", "tty", "stat", "start", "time", "command"]
-    l = len(header) - 1
+    hl = len(header) - 1
     for line in ctx.content[1:]:
-        parts = [l.strip() for l in line.split(None, l)]
+        parts = [l.strip() for l in line.split(None, hl)]
         data = Dict(zip(header, parts), parent=results)
         data["pid"] = int(data["pid"])
         data["cpu"] = float(data["cpu"])

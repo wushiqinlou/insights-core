@@ -32,7 +32,7 @@ def lsof(ctx):
     content = ctx.content
     top = content[0]
     header_intervals = get_intervals(top)
-    headers = {top[l:r].lower(): (l, r) for l, r in header_intervals}
+    headers = dict((top[l:r].lower(), (l, r)) for (l, r) in header_intervals)
     results = List()
     for line in content[1:]:
         one = []

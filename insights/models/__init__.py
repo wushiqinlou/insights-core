@@ -260,7 +260,7 @@ class List(Base, list):
                         res.extend(v)
                     else:
                         res.append(v)
-            except Exception as ex:
+            except Exception:
                 pass
         return res
 
