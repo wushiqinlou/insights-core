@@ -3,24 +3,15 @@ Collect all the interesting data for analysis
 """
 from __future__ import absolute_import
 import os
-import errno
 import json
 import logging
-import copy
-import glob
-import six
-import shlex
 from itertools import chain
-from subprocess import Popen, PIPE, STDOUT
 from tempfile import NamedTemporaryFile
 from insights import collect
 
-from insights.util import mangle
 from ..contrib.soscleaner import SOSCleaner
-from .utilities import _expand_paths, get_version_info, read_pidfile, get_tags
+from .utilities import get_version_info, read_pidfile, get_tags
 from .constants import InsightsConstants as constants
-from .insights_spec import InsightsFile, InsightsCommand
-from .archive import InsightsArchive
 
 APP_NAME = constants.app_name
 logger = logging.getLogger(__name__)
@@ -86,108 +77,11 @@ class DataCollector(object):
             t = list(chain.from_iterable(t))
             self.archive.add_metadata_to_archive(json.dumps(t), '/tags.json')
 
-    def _run_pre_command(self, pre_cmd):
-        '''
-        Run a pre command to get external args for a command
-        '''
-        logger.debug('Executing pre-command: %s', pre_cmd)
-        try:
-            pre_proc = Popen(pre_cmd, stdout=PIPE, stderr=STDOUT, shell=True)
-        except OSError as err:
-            if err.errno == errno.ENOENT:
-                logger.debug('Command %s not found', pre_cmd)
-            return
-        stdout, stderr = pre_proc.communicate()
-        the_return_code = pre_proc.poll()
-        logger.debug("Pre-command results:")
-        logger.debug("STDOUT: %s", stdout)
-        logger.debug("STDERR: %s", stderr)
-        logger.debug("Return Code: %s", the_return_code)
-        if the_return_code != 0:
-            return []
-        if six.PY3:
-            stdout = stdout.decode('utf-8')
-        return stdout.splitlines()
-
-    def _parse_file_spec(self, spec):
-        '''
-        Separate wildcard specs into more specs
-        '''
-        # separate wildcard specs into more specs
-        if '*' in spec['file']:
-            expanded_paths = _expand_paths(spec['file'])
-            if not expanded_paths:
-                return []
-            expanded_specs = []
-            for p in expanded_paths:
-                _spec = copy.copy(spec)
-                _spec['file'] = p
-                expanded_specs.append(_spec)
-            return expanded_specs
-
-        else:
-            return [spec]
-
-    def _parse_glob_spec(self, spec):
-        '''
-        Grab globs of things
-        '''
-        some_globs = glob.glob(spec['glob'])
-        if not some_globs:
-            return []
-        el_globs = []
-        for g in some_globs:
-            _spec = copy.copy(spec)
-            _spec['file'] = g
-            el_globs.append(_spec)
-        return el_globs
-
-    def _blacklist_check(self, cmd):
-        def _get_nested_parts(cmd):
-            parts = shlex.split(cmd.replace(';', ' '))
-            all_parts = parts[:]
-            for p in parts:
-                if len(shlex.split(p)) > 1:
-                    all_parts += _get_nested_parts(p)
-            return all_parts
-
-        cmd_parts = _get_nested_parts(cmd)
-        return len(set.intersection(set(cmd_parts),
-                   constants.command_blacklist)) > 0
-
-    def _parse_command_spec(self, spec, precmds):
-        '''
-        Run pre_commands
-        '''
-        if 'pre_command' in spec:
-            precmd_alias = spec['pre_command']
-            try:
-                precmd = precmds[precmd_alias]
-
-                if self._blacklist_check(precmd):
-                    raise RuntimeError("Command Blacklist: " + precmd)
-
-                args = self._run_pre_command(precmd)
-                logger.debug('Pre-command results: %s', args)
-
-                expanded_specs = []
-                for arg in args:
-                    _spec = copy.copy(spec)
-                    _spec['command'] = _spec['command'] + ' ' + arg
-                    expanded_specs.append(_spec)
-                return expanded_specs
-            except LookupError:
-                logger.debug('Pre-command %s not found. Skipping %s...',
-                             precmd_alias, spec['command'])
-                return []
-        else:
-            return [spec]
-
-    def run_collection(self, conf, rm_conf, branch_info):
+    def run_collection(self, rm_conf, branch_info):
         '''
         Run specs and collect all the data
         '''
-        parent_pid = read_pidfile()
+        parent_pid = read_pidfile()  # TODO: leverage this in core collection
         if rm_conf is None:
             rm_conf = {}
         logger.debug('Beginning to run collection...')
@@ -214,7 +108,7 @@ class DataCollector(object):
         self._write_tags()
         logger.debug('Metadata collection finished.')
 
-    def done(self, conf, rm_conf):
+    def done(self, rm_conf):
         """
         Do finalization stuff
 
@@ -233,8 +127,8 @@ class DataCollector(object):
         if self.config.obfuscate:
             cleaner = SOSCleaner(quiet=True)
             clean_opts = CleanOptions(
-                self.config, self.archive.tmp_dir, rm_conf, self.hostname_path)
-            cleaner.clean_report(clean_opts, self.archive.archive_dir)
+                self.config, self.archive.tmp_dir, rm_conf)
+            fresh = cleaner.clean_report(clean_opts, self.archive.archive_dir)
             if clean_opts.keyword_file is not None:
                 os.remove(clean_opts.keyword_file.name)
                 logger.warn("WARNING: Skipping keywords found in remove.conf")
@@ -258,7 +152,7 @@ class CleanOptions(object):
     """
     Options for soscleaner
     """
-    def __init__(self, config, tmp_dir, rm_conf, hostname_path):
+    def __init__(self, config, tmp_dir, rm_conf):
         self.report_dir = tmp_dir
         self.domains = []
         self.files = []
@@ -281,6 +175,6 @@ class CleanOptions(object):
 
         if config.obfuscate_hostname:
             # default to its original location
-            self.hostname_path = hostname_path or 'insights_commands/hostname'
+            self.hostname_path = 'data/insights_commands/hostname'
         else:
             self.hostname_path = None
