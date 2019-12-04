@@ -96,7 +96,7 @@ class DataCollector(object):
             except LookupError:
                 logger.debug('Patterns section of remove.conf is empty.')
 
-        collected_data_path = collect.collect(tmp_path=self.archive.tmp_dir)
+        collected_data_path = collect.collect(tmp_path=self.archive.tmp_dir, rm_conf=rm_conf)
         self.archive.update(collected_data_path)
         logger.debug('Collection finished.')
 

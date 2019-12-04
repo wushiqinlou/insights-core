@@ -214,7 +214,7 @@ def get_pool(parallel, kwargs):
         yield None
 
 
-def collect(manifest=default_manifest, tmp_path=None, compress=False):
+def collect(manifest=default_manifest, tmp_path=None, compress=False, rm_conf={}):
     """
     This is the collection entry point. It accepts a manifest, a temporary
     directory in which to store output, and a boolean for optional compression.
@@ -228,6 +228,9 @@ def collect(manifest=default_manifest, tmp_path=None, compress=False):
         compress (boolean): True to create a tar.gz and remove the original
             workspace containing output. False to leave the workspace without
             creating a tar.gz
+        rm_conf (dict): Client-provided python dict containing keys
+            "commands", "files", "patterns", and "keywords", to be
+            injected into the manifest blacklist.
 
     Returns:
         The full path to the created tar.gz or workspace.
@@ -243,10 +246,14 @@ def collect(manifest=default_manifest, tmp_path=None, compress=False):
     apply_configs(plugins)
 
     apply_blacklist(client.get("blacklist", {}))
+    apply_blacklist(rm_conf)
 
     to_persist = get_to_persist(client.get("persist", set()))
 
-    hostname = call("hostname -f", env=SAFE_ENV).strip()
+    try:
+        hostname = call("hostname -f", env=SAFE_ENV).strip()
+    except CalledProcessError:
+        hostname = call("hostname", env=SAFE_ENV).strip()
     suffix = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     relative_path = "insights-%s-%s" % (hostname, suffix)
     tmp_path = tmp_path or tempfile.gettempdir()
