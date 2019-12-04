@@ -338,7 +338,6 @@ def test_cleanup_tmp():
     config.keep_archive = False
     arch.cleanup_tmp()
     assert not os.path.exists(arch.tmp_dir)
-    assert not os.path.exists(arch.archive_tmp_dir)
 
 
 @patch('insights.client.client._legacy_handle_registration')
