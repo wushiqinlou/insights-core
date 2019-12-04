@@ -10,7 +10,8 @@ from tempfile import NamedTemporaryFile
 from insights import collect
 
 from ..contrib.soscleaner import SOSCleaner
-from .utilities import get_version_info, read_pidfile, get_tags
+# from .utilities import get_version_info, read_pidfile, get_tags
+from .utilities import get_version_info, get_tags
 from .constants import InsightsConstants as constants
 
 APP_NAME = constants.app_name
