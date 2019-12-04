@@ -13,6 +13,7 @@ import shlex
 from itertools import chain
 from subprocess import Popen, PIPE, STDOUT
 from tempfile import NamedTemporaryFile
+from insights import collect
 
 from insights.util import mangle
 from ..contrib.soscleaner import SOSCleaner
@@ -189,7 +190,7 @@ class DataCollector(object):
         parent_pid = read_pidfile()
         if rm_conf is None:
             rm_conf = {}
-        logger.debug('Beginning to run collection spec...')
+        logger.debug('Beginning to run collection...')
         exclude = None
         if rm_conf:
             try:
@@ -201,45 +202,9 @@ class DataCollector(object):
             except LookupError:
                 logger.debug('Patterns section of remove.conf is empty.')
 
-        for c in conf['commands']:
-            # remember hostname archive path
-            if c.get('symbolic_name') == 'hostname':
-                self.hostname_path = os.path.join(
-                    'insights_commands', mangle.mangle_command(c['command']))
-            rm_commands = rm_conf.get('commands', [])
-            if c['command'] in rm_commands or c.get('symbolic_name') in rm_commands:
-                logger.warn("WARNING: Skipping command %s", c['command'])
-            elif self.mountpoint == "/" or c.get("image"):
-                cmd_specs = self._parse_command_spec(c, conf['pre_commands'])
-                for s in cmd_specs:
-                    if s['command'] in rm_commands:
-                        logger.warn("WARNING: Skipping command %s", s['command'])
-                        continue
-                    cmd_spec = InsightsCommand(self.config, s, exclude, self.mountpoint, parent_pid)
-                    self.archive.add_to_archive(cmd_spec)
-        for f in conf['files']:
-            rm_files = rm_conf.get('files', [])
-            if f['file'] in rm_files or f.get('symbolic_name') in rm_files:
-                logger.warn("WARNING: Skipping file %s", f['file'])
-            else:
-                file_specs = self._parse_file_spec(f)
-                for s in file_specs:
-                    # filter files post-wildcard parsing
-                    if s['file'] in rm_conf.get('files', []):
-                        logger.warn("WARNING: Skipping file %s", s['file'])
-                    else:
-                        file_spec = InsightsFile(s, exclude, self.mountpoint, parent_pid)
-                        self.archive.add_to_archive(file_spec)
-        if 'globs' in conf:
-            for g in conf['globs']:
-                glob_specs = self._parse_glob_spec(g)
-                for g in glob_specs:
-                    if g['file'] in rm_conf.get('files', []):
-                        logger.warn("WARNING: Skipping file %s", g)
-                    else:
-                        glob_spec = InsightsFile(g, exclude, self.mountpoint, parent_pid)
-                        self.archive.add_to_archive(glob_spec)
-        logger.debug('Spec collection finished.')
+        collected_data_path = collect.collect(tmp_path=self.archive.tmp_dir)
+        self.archive.update(collected_data_path)
+        logger.debug('Collection finished.')
 
         # collect metadata
         logger.debug('Collecting metadata...')
