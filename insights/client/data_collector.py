@@ -81,7 +81,7 @@ class DataCollector(object):
         '''
         Run specs and collect all the data
         '''
-        parent_pid = read_pidfile()  # TODO: leverage this in core collection
+        # parent_pid = read_pidfile()  # TODO: leverage this in core collection
         if rm_conf is None:
             rm_conf = {}
         logger.debug('Beginning to run collection...')

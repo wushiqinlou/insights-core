@@ -21,7 +21,7 @@ from insights import apply_configs, apply_default_enabled, dr
 from insights.core import blacklist
 from insights.core.serde import Hydration
 from insights.util import fs
-from insights.util.subproc import call
+from insights.util.subproc import call, CalledProcessError
 
 SAFE_ENV = {
     "PATH": os.path.pathsep.join([
