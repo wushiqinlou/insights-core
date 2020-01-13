@@ -356,9 +356,9 @@ class InsightsConnection(object):
                 test_req = self.session.post(url, timeout=self.config.http_timeout, files=test_files)
             elif method is "GET":
                     test_req = self.session.get(url, timeout=self.config.http_timeout)
-            logger.info("HTTP Status Code: %d", test_req.status_code)
-            logger.info("HTTP Status Text: %s", test_req.reason)
-            logger.info("HTTP Response Text: %s", test_req.text)
+            net_logger.info("HTTP Status Code: %d", test_req.status_code)
+            net_logger.info("HTTP Status Text: %s", test_req.reason)
+            net_logger.info("HTTP Response Text: %s", test_req.text)
             if test_req.status_code in (200, 201, 202):
                 logger.info(
                     "Successfully connected to: %s", url)
@@ -413,29 +413,29 @@ class InsightsConnection(object):
         """
 
         try:
-            logger.debug("HTTP Status Code: %s", req.status_code)
-            logger.debug("HTTP Response Text: %s", req.text)
-            logger.debug("HTTP Response Reason: %s", req.reason)
-            logger.debug("HTTP Response Content: %s", req.content)
+            net_logger.debug("HTTP Status Code: %s", req.status_code)
+            net_logger.debug("HTTP Response Text: %s", req.text)
+            net_logger.debug("HTTP Response Reason: %s", req.reason)
+            net_logger.debug("HTTP Response Content: %s", req.content)
         except:
             logger.error("Malformed HTTP Request.")
 
         # attempt to read the HTTP response JSON message
         try:
-            logger.debug("HTTP Response Message: %s", req.json()["message"])
+            net_logger.debug("HTTP Response Message: %s", req.json()["message"])
         except:
-            logger.debug("No HTTP Response message present.")
+            net_logger.debug("No HTTP Response message present.")
 
         # handle specific status codes
         if req.status_code >= 400:
-            logger.info("Debug Information:\nHTTP Status Code: %s",
+            net_logger.info("Debug Information:\nHTTP Status Code: %s",
                         req.status_code)
-            logger.info("HTTP Status Text: %s", req.reason)
+            net_logger.info("HTTP Status Text: %s", req.reason)
             if req.status_code == 401:
                 logger.error("Authorization Required.")
                 logger.error("Please ensure correct credentials "
                              "in " + constants.default_conf_file)
-                logger.debug("HTTP Response Text: %s", req.text)
+                net_logger.debug("HTTP Response Text: %s", req.text)
             if req.status_code == 402:
                 # failed registration because of entitlement limit hit
                 logger.debug('Registration failed by 402 error.')
@@ -443,10 +443,10 @@ class InsightsConnection(object):
                     logger.error(req.json()["message"])
                 except LookupError:
                     logger.error("Got 402 but no message")
-                    logger.debug("HTTP Response Text: %s", req.text)
+                    net_logger.debug("HTTP Response Text: %s", req.text)
                 except:
                     logger.error("Got 402 but no message")
-                    logger.debug("HTTP Response Text: %s", req.text)
+                    net_logger.debug("HTTP Response Text: %s", req.text)
             if req.status_code == 403 and self.auto_config:
                 # Insights disabled in satellite
                 rhsm_hostname = urlparse(self.base_url).hostname
