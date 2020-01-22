@@ -88,6 +88,7 @@ class ColQuery(SimpleQuery):
     Like a SimpleQuery, but the value predicate is bound with operator
     overloading instead of in a second parameter of the initializer.
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -177,6 +178,7 @@ class Dict(Base, dict):
         return self[name]
 
     def __dir__(self):
+        """ Magic for autocomplete. """
         return list(self.keys()) + object.__dir__(self)
 
     def _both_booleans(self, n, a):
@@ -290,6 +292,7 @@ class List(Base, list):
         return False
 
     def __dir__(self):
+        """ Magic for autocomplete. """
         return self.keys() + object.__dir__(self)
 
     def upto(self, name):

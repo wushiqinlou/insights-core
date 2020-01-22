@@ -60,6 +60,7 @@ class Node(object):
     each instance containing a list of its children. Its main purpose is to
     simplify pretty printing.
     """
+
     def __init__(self):
         self.children = []
 
@@ -143,6 +144,7 @@ class Context(object):
     for grammars like xml or apache configuration, the active parser stack for
     error reporting, and accumulated errors for the farthest position reached.
     """
+
     def __init__(self, lines, src=None):
         self.pos = -1
         self.indents = []
@@ -193,6 +195,7 @@ class Parser(with_metaclass(_ParserMeta, Node)):
     """
     Parser is the common base class of all Parsers.
     """
+
     def __init__(self):
         super(Parser, self).__init__()
         self.name = None
@@ -356,6 +359,7 @@ class Char(Parser):
             val = a("b")      # raises an exception
 
     """
+
     def __init__(self, char):
         super(Char, self).__init__()
         self.char = char
@@ -386,6 +390,7 @@ class InSet(Parser):
             val = vowel("y")  # raises an exception
 
     """
+
     def __init__(self, s, name=None):
         super(InSet, self).__init__()
         self.values = set(s)
@@ -420,6 +425,7 @@ class String(Parser):
             val = vowels("ga")           # raises an exception
 
     """
+
     def __init__(self, chars, echars=None, min_length=1):
         super(String, self).__init__()
         self.chars = set(chars)
@@ -519,6 +525,7 @@ class Wrapper(Parser):
     choices from accidentally accumulating other parsers when used in multiple
     parts of a grammar.
     """
+
     def __init__(self, parser):
         super(Wrapper, self).__init__()
         self.add_child(parser)
@@ -533,6 +540,7 @@ class Mark(object):
     in the input. Marks can give more context to a value transformed by mapped
     functions.
     """
+
     def __init__(self, lineno, col, value):
         self.lineno = lineno
         self.col = col
@@ -545,6 +553,7 @@ class PosMarker(Wrapper):
     PosMarker. The value of the parser that handled the input as well as the
     initial input position will be returned as a :py:class:`Mark`.
     """
+
     def process(self, pos, data, ctx):
         lineno = ctx.line(pos) + 1
         col = ctx.col(pos) + 1
@@ -587,6 +596,7 @@ class Sequence(Parser):
 
             val = abc("abc")  # produces ["a", "b", "c"]
     """
+
     def __init__(self, children):
         super(Sequence, self).__init__()
         self.set_children(children)
@@ -623,6 +633,7 @@ class Choice(Parser):
             val = abc("c")    # parses a single "c"
             val = abc("d")    # raises an exception
     """
+
     def __init__(self, children):
         super(Choice, self).__init__()
         self.set_children(children)
@@ -672,6 +683,7 @@ class Many(Parser):
             bs = Many(Char("b"), lower=1) # requires at least one "b"
 
     """
+
     def __init__(self, parser, lower=0):
         super(Many, self).__init__()
         self.add_child(parser)
@@ -724,6 +736,7 @@ class Until(Parser):
             val = cs("abcdycc")           # returns ["a", "b", "c", "d"]
 
     """
+
     def __init__(self, parser, predicate):
         super(Until, self).__init__()
         self.set_children([parser, predicate])
@@ -762,6 +775,7 @@ class FollowedBy(Parser):
                                        # consume "a".
 
     """
+
     def __init__(self, child, follow):
         super(FollowedBy, self).__init__()
         self.set_children([child, follow])
@@ -789,6 +803,7 @@ class NotFollowedBy(Parser):
                                         # consume "a".
 
     """
+
     def __init__(self, child, follow):
         super(NotFollowedBy, self).__init__()
         self.set_children([child, follow])
@@ -822,6 +837,7 @@ class KeepLeft(Parser):
                              # <<
 
     """
+
     def __init__(self, left, right):
         super(KeepLeft, self).__init__()
         self.set_children([left, right])
@@ -849,6 +865,7 @@ class KeepRight(Parser):
                              # >>
 
     """
+
     def __init__(self, left, right):
         super(KeepRight, self).__init__()
         self.set_children([left, right])
@@ -879,6 +896,7 @@ class Opt(Parser):
             val = o("b")    # returns "x". Read pointer is not advanced.
 
     """
+
     def __init__(self, p, default=None):
         super(Opt, self).__init__()
         self.add_child(p)
@@ -905,6 +923,7 @@ class Map(Parser):
             Number = Digits.map(lambda x: int("".join(x)))
 
     """
+
     def __init__(self, child, func):
         super(Map, self).__init__()
         self.add_child(child)
@@ -950,6 +969,7 @@ class Lift(Parser):
             val = p("xyx")  # raises an exception. nothing would be consumed
 
     """
+
     def __init__(self, func):
         super(Lift, self).__init__()
         self.func = func
@@ -986,6 +1006,7 @@ class Forward(Parser):
             expr <= (term + Many(LowOps + term)).map(op)
 
     """
+
     def __init__(self):
         super(Forward, self).__init__()
         self.delegate = None
@@ -1008,6 +1029,7 @@ class EOF(Parser):
             Top = Expr << EOF
 
     """
+
     def process(self, pos, data, ctx):
         if data[pos] is None:
             return pos, None
@@ -1026,6 +1048,7 @@ class EnclosedComment(Parser):
             Comment = EnclosedComment("/*", "*/")
 
     """
+
     def __init__(self, s, e):
         super(EnclosedComment, self).__init__()
         Start = Literal(s)
@@ -1048,6 +1071,7 @@ class OneLineComment(Parser):
             Comment = OneLineComment("#") | OneLineComment("//")
 
     """
+
     def __init__(self, s):
         super(OneLineComment, self).__init__()
         p = Literal(s) >> Opt(AnyChar.until(InSet("\r\n")), "")
@@ -1076,6 +1100,7 @@ class WithIndent(Wrapper):
             KVPair = WithIndent(Key + Opt(Sep >> Value))
 
     """
+
     def process(self, pos, data, ctx):
         new, _ = WS.process(pos, data, ctx)
         try:
@@ -1097,6 +1122,7 @@ class HangingString(Parser):
             KVPair = WithIndent(Key + Opt(Sep >> Value))
 
     """
+
     def __init__(self, chars, echars=None, min_length=1):
         super(HangingString, self).__init__()
         p = String(chars, echars=echars, min_length=min_length)
@@ -1127,6 +1153,7 @@ class StartTagName(Wrapper):
     etc. The tag result is captured and put onto a tag stack in the
     :py:class:`Context` object.
     """
+
     def process(self, pos, data, ctx):
         pos, res = self.children[0].process(pos, data, ctx)
         ctx.tags.append(res)
@@ -1140,6 +1167,7 @@ class EndTagName(Wrapper):
     :py:class:`Context` object. The tags must match for the parse to be
     successful.
     """
+
     def __init__(self, parser, ignore_case=False):
         super(EndTagName, self).__init__(parser)
         self.ignore_case = ignore_case
