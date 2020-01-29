@@ -147,8 +147,8 @@ class Pipeline(object):
                     rc = p.wait()
                     if keep_rc:
                         return rc
-                    if rc:
-                        raise CalledProcessError(rc, self.cmds[0], "")
+                    # if rc:
+                    #     raise CalledProcessError(rc, self.cmds[0], "")
             except BaseException as be:
                 if not already_exists and os.path.exists(output):
                     os.remove(output)
