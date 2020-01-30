@@ -1557,7 +1557,7 @@ metadata:
 """
 
 
-@pytest.mark.skip(reason='not working in QE jenkins')
+@pytest.mark.skip(reason='not working in QE jenkins - datetime')
 def test_oc_get_pod_yml():
     result = openshift_get.OcGetPod(context_wrap(OC_GET_POD))
     assert result.data['items'][0]['metadata']['annotations']['openshift.io/scc'] == 'anyuid'
@@ -1676,6 +1676,7 @@ def test_oc_get_event():
     assert result.events['busybox.1508ef957b1935a4']['type'] == 'Normal'
 
 
+@pytest.mark.skip(reason='not working in QE jenkins - datetime')
 def test_oc_get_egressnetworkpolicy_yml():
     result = openshift_get.OcGetEgressNetworkPolicy(context_wrap(OC_GET_EGRESS_NETWORK_POLICY))
     assert result.data['items'][0]['kind'] == 'EgressNetworkPolicy'
