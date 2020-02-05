@@ -242,7 +242,7 @@ class InsightsConnection(object):
         proxies = None
         proxy_auth = None
         no_proxy = os.environ.get('NO_PROXY')
-        logger.debug("NO PROXY: %s", no_proxy)
+        net_logger.debug("NO PROXY: %s", no_proxy)
 
         # CONF PROXY TAKES PRECEDENCE OVER ENV PROXY
         conf_proxy = self.config.proxy
@@ -251,21 +251,21 @@ class InsightsConnection(object):
              conf_proxy != "")):
             if '@' in conf_proxy:
                 scheme = conf_proxy.split(':')[0] + '://'
-                logger.debug("Proxy Scheme: %s", scheme)
+                net_logger.debug("Proxy Scheme: %s", scheme)
                 location = conf_proxy.split('@')[1]
-                logger.debug("Proxy Location: %s", location)
+                net_logger.debug("Proxy Location: %s", location)
                 username = conf_proxy.split(
                     '@')[0].split(':')[1].replace('/', '')
-                logger.debug("Proxy User: %s", username)
+                net_logger.debug("Proxy User: %s", username)
                 password = conf_proxy.split('@')[0].split(':')[2]
                 proxy_auth = requests.auth._basic_auth_str(username, password)
                 conf_proxy = scheme + location
-            logger.debug("CONF Proxy: %s", conf_proxy)
+            net_logger.debug("CONF Proxy: %s", conf_proxy)
             proxies = {"https": conf_proxy}
 
         # HANDLE NO PROXY CONF PROXY EXCEPTION VERBIAGE
         if no_proxy and conf_proxy:
-            logger.debug("You have environment variable NO_PROXY set "
+            net_logger.debug("You have environment variable NO_PROXY set "
                          "as well as 'proxy' set in your configuration file. "
                          "NO_PROXY environment variable will be ignored.")
 
@@ -275,36 +275,36 @@ class InsightsConnection(object):
             if env_proxy:
                 if '@' in env_proxy:
                     scheme = env_proxy.split(':')[0] + '://'
-                    logger.debug("Proxy Scheme: %s", scheme)
+                    net_logger.debug("Proxy Scheme: %s", scheme)
                     location = env_proxy.split('@')[1]
-                    logger.debug("Proxy Location: %s", location)
+                    net_logger.debug("Proxy Location: %s", location)
                     username = env_proxy.split('@')[0].split(':')[1].replace('/', '')
-                    logger.debug("Proxy User: %s", username)
+                    net_logger.debug("Proxy User: %s", username)
                     password = env_proxy.split('@')[0].split(':')[2]
                     proxy_auth = requests.auth._basic_auth_str(username, password)
                     env_proxy = scheme + location
-                logger.debug("ENV Proxy: %s", env_proxy)
+                net_logger.debug("ENV Proxy: %s", env_proxy)
                 proxies = {"https": env_proxy}
             if no_proxy:
                 insights_service_host = urlparse(self.base_url).hostname
-                logger.debug('Found NO_PROXY set. Checking NO_PROXY %s against base URL %s.', no_proxy, insights_service_host)
+                net_logger.debug('Found NO_PROXY set. Checking NO_PROXY %s against base URL %s.', no_proxy, insights_service_host)
                 for no_proxy_host in no_proxy.split(','):
-                    logger.debug('Checking %s against %s', no_proxy_host, insights_service_host)
+                    net_logger.debug('Checking %s against %s', no_proxy_host, insights_service_host)
                     if no_proxy_host == '*':
                         proxies = None
                         proxy_auth = None
-                        logger.debug('Found NO_PROXY asterisk(*) wildcard, disabling all proxies.')
+                        net_logger.debug('Found NO_PROXY asterisk(*) wildcard, disabling all proxies.')
                         break
                     elif no_proxy_host.startswith('.') or no_proxy_host.startswith('*'):
                         if insights_service_host.endswith(no_proxy_host.replace('*', '')):
                             proxies = None
                             proxy_auth = None
-                            logger.debug('Found NO_PROXY range %s matching %s', no_proxy_host, insights_service_host)
+                            net_logger.debug('Found NO_PROXY range %s matching %s', no_proxy_host, insights_service_host)
                             break
                     elif no_proxy_host == insights_service_host:
                         proxies = None
                         proxy_auth = None
-                        logger.debug('Found NO_PROXY %s exactly matching %s', no_proxy_host, insights_service_host)
+                        net_logger.debug('Found NO_PROXY %s exactly matching %s', no_proxy_host, insights_service_host)
                         break
 
         self.proxies = proxies
@@ -322,26 +322,26 @@ class InsightsConnection(object):
         paths = (url.path + '/', '', '/r', '/r/insights')
         for ext in paths:
             try:
-                logger.debug("Testing: %s", test_url + ext)
+                net_logger.debug("Testing: %s", test_url + ext)
                 if method is "POST":
                     test_req = self.session.post(
                         test_url + ext, timeout=self.config.http_timeout, data=test_flag)
                 elif method is "GET":
                     test_req = self.session.get(test_url + ext, timeout=self.config.http_timeout)
-                logger.info("HTTP Status Code: %d", test_req.status_code)
-                logger.info("HTTP Status Text: %s", test_req.reason)
-                logger.info("HTTP Response Text: %s", test_req.text)
+                net_logger.info("HTTP Status Code: %d", test_req.status_code)
+                net_logger.info("HTTP Status Text: %s", test_req.reason)
+                net_logger.info("HTTP Response Text: %s", test_req.text)
                 # Strata returns 405 on a GET sometimes, this isn't a big deal
                 if test_req.status_code in (200, 201):
-                    logger.info(
+                    net_logger.info(
                         "Successfully connected to: %s", test_url + ext)
                     return True
                 else:
-                    logger.info("Connection failed")
+                    net_logger.info("Connection failed")
                     return False
             except requests.ConnectionError as exc:
                 last_ex = exc
-                logger.error(
+                net_logger.error(
                     "Could not successfully connect to: %s", test_url + ext)
                 print(exc)
         if last_ex:
@@ -354,7 +354,7 @@ class InsightsConnection(object):
         if self.config.legacy_upload:
             return self._legacy_test_urls(url, method)
         try:
-            logger.debug('Testing %s', url)
+            net_logger.debug('Testing %s', url)
             if method is 'POST':
                 test_tar = TemporaryFile(mode='rb', suffix='.tar.gz')
                 test_files = {
@@ -368,15 +368,15 @@ class InsightsConnection(object):
             net_logger.info("HTTP Status Text: %s", test_req.reason)
             net_logger.info("HTTP Response Text: %s", test_req.text)
             if test_req.status_code in (200, 201, 202):
-                logger.info(
+                net_logger.info(
                     "Successfully connected to: %s", url)
                 return True
             else:
-                logger.info("Connection failed")
+                net_logger.info("Connection failed")
                 return False
         except requests.ConnectionError as exc:
             last_ex = exc
-            logger.error(
+            net_logger.error(
                 "Could not successfully connect to: %s", url)
             print(exc)
         if last_ex:
@@ -386,31 +386,31 @@ class InsightsConnection(object):
         """
         Test connection to Red Hat
         """
-        logger.debug("Proxy config: %s", self.proxies)
+        net_logger.debug("Proxy config: %s", self.proxies)
         try:
-            logger.info("=== Begin Upload URL Connection Test ===")
+            net_logger.info("=== Begin Upload URL Connection Test ===")
             upload_success = self._test_urls(self.upload_url, "POST")
-            logger.info("=== End Upload URL Connection Test: %s ===\n",
+            net_logger.info("=== End Upload URL Connection Test: %s ===\n",
                         "SUCCESS" if upload_success else "FAILURE")
-            logger.info("=== Begin API URL Connection Test ===")
+            net_logger.info("=== Begin API URL Connection Test ===")
             if self.config.legacy_upload:
                 api_success = self._test_urls(self.base_url, "GET")
             else:
                 api_success = self._test_urls(self.base_url + '/apicast-tests/ping', 'GET')
-            logger.info("=== End API URL Connection Test: %s ===\n",
+            net_logger.info("=== End API URL Connection Test: %s ===\n",
                         "SUCCESS" if api_success else "FAILURE")
             if upload_success and api_success:
-                logger.info("Connectivity tests completed successfully")
-                logger.info("See %s for more details.", self.config.logging_file)
+                net_logger.info("Connectivity tests completed successfully")
+                net_logger.info("See %s for more details.", self.config.logging_file)
             else:
-                logger.info("Connectivity tests completed with some errors")
-                logger.info("See %s for more details.", self.config.logging_file)
+                net_logger.info("Connectivity tests completed with some errors")
+                net_logger.info("See %s for more details.", self.config.logging_file)
                 rc = 1
         except requests.ConnectionError as exc:
             print(exc)
-            logger.error('Connectivity test failed! '
+            net_logger.error('Connectivity test failed! '
                          'Please check your network configuration')
-            logger.error('Additional information may be in'
+            net_logger.error('Additional information may be in'
                          ' /var/log/' + APP_NAME + "/" + APP_NAME + ".log")
             return 1
         return rc
@@ -465,14 +465,14 @@ class InsightsConnection(object):
             if req.status_code == 412:
                 try:
                     unreg_date = req.json()["unregistered_at"]
-                    logger.error(req.json()["message"])
+                    net_logger.error(req.json()["message"])
                     write_unregistered_file(unreg_date)
                 except LookupError:
                     unreg_date = "412, but no unreg_date or message"
-                    logger.debug("HTTP Response Text: %s", req.text)
+                    net_logger.debug("HTTP Response Text: %s", req.text)
                 except:
                     unreg_date = "412, but no unreg_date or message"
-                    logger.debug("HTTP Response Text: %s", req.text)
+                    net_logger.debug("HTTP Response Text: %s", req.text)
             return True
         return False
 
@@ -520,7 +520,7 @@ class InsightsConnection(object):
         net_logger.info(u'GET %s', self.branch_info_url)
         response = self.session.get(self.branch_info_url,
                                     timeout=self.config.http_timeout)
-        logger.debug(u'GET branch_info status: %s', response.status_code)
+        net_logger.debug(u'GET branch_info status: %s', response.status_code)
         if response.status_code != 200:
             logger.debug("There was an error obtaining branch information.")
             logger.debug(u'Bad status from server: %s', response.status_code)
@@ -566,8 +566,8 @@ class InsightsConnection(object):
             data['display_name'] = self.config.display_name
         data = json.dumps(data)
         post_system_url = self.api_url + '/v1/systems'
-        logger.debug("POST System: %s", post_system_url)
-        logger.debug(data)
+        net_logger.debug("POST System: %s", post_system_url)
+        net_logger.debug(data)
         net_logger.info("POST %s", post_system_url)
         return self.session.post(post_system_url,
                                  headers={'Content-Type': 'application/json'},
@@ -587,35 +587,35 @@ class InsightsConnection(object):
         group_path = self.api_url + '/v1/groups'
         group_get_path = group_path + ('?display_name=%s' % quote(group_name))
 
-        logger.debug("GET group: %s", group_get_path)
+        net_logger.debug("GET group: %s", group_get_path)
         net_logger.info("GET %s", group_get_path)
         get_group = self.session.get(group_get_path)
-        logger.debug("GET group status: %s", get_group.status_code)
+        net_logger.debug("GET group status: %s", get_group.status_code)
         if get_group.status_code == 200:
             api_group_id = get_group.json()['id']
 
         if get_group.status_code == 404:
             # Group does not exist, POST to create
-            logger.debug("POST group")
+            net_logger.debug("POST group")
             data = json.dumps({'display_name': group_name})
             net_logger.info("POST", group_path)
             post_group = self.session.post(group_path,
                                            headers=headers,
                                            data=data)
-            logger.debug("POST group status: %s", post_group.status_code)
-            logger.debug("POST Group: %s", post_group.json())
+            net_logger.debug("POST group status: %s", post_group.status_code)
+            net_logger.debug("POST Group: %s", post_group.json())
             self.handle_fail_rcs(post_group)
             api_group_id = post_group.json()['id']
 
-        logger.debug("PUT group")
+        net_logger.debug("PUT group")
         data = json.dumps(systems)
         net_logger.info("PUT %s", group_path + ('/%s/systems' % api_group_id))
         put_group = self.session.put(group_path +
                                      ('/%s/systems' % api_group_id),
                                      headers=headers,
                                      data=data)
-        logger.debug("PUT group status: %d", put_group.status_code)
-        logger.debug("PUT Group: %s", put_group.json())
+        net_logger.debug("PUT group status: %d", put_group.status_code)
+        net_logger.debug("PUT Group: %s", put_group.json())
 
     # -LEGACY-
     # Keeping this function around because it's not private and I don't know if anything else uses it
@@ -632,7 +632,7 @@ class InsightsConnection(object):
         '''
         Check registration status through API
         '''
-        logger.debug('Checking registration status...')
+        net_logger.debug('Checking registration status...')
         machine_id = generate_machine_id()
         try:
             url = self.api_url + '/v1/systems/' + machine_id
@@ -640,7 +640,7 @@ class InsightsConnection(object):
             res = self.session.get(url, timeout=self.config.http_timeout)
         except requests.ConnectionError:
             # can't connect, run connection test
-            logger.error('Connection timed out. Running connection test...')
+            net_logger.error('Connection timed out. Running connection test...')
             self.test_connection()
             return False
         # had to do a quick bugfix changing this around,
@@ -685,8 +685,8 @@ class InsightsConnection(object):
             net_logger.info("GET %s", url)
             res = self.session.get(url, timeout=self.config.http_timeout)
         except (requests.ConnectionError, requests.Timeout) as e:
-            logger.error(e)
-            logger.error('The Insights API could not be reached.')
+            net_logger.error(e)
+            net_logger.error('The Insights API could not be reached.')
             return None
         try:
             if (self.handle_fail_rcs(res)):
@@ -832,24 +832,24 @@ class InsightsConnection(object):
 
         upload_url = self.upload_url + '/' + generate_machine_id()
 
-        logger.debug("Uploading %s to %s", data_collected, upload_url)
+        net_logger.debug("Uploading %s to %s", data_collected, upload_url)
 
         headers = {'x-rh-collection-time': str(duration)}
         net_logger.info("POST %s", upload_url)
         upload = self.session.post(upload_url, files=files, headers=headers)
 
-        logger.debug("Upload status: %s %s %s",
+        net_logger.debug("Upload status: %s %s %s",
                      upload.status_code, upload.reason, upload.text)
         if upload.status_code in (200, 201):
             the_json = json.loads(upload.text)
         else:
-            logger.error("Upload archive failed with status code  %s", upload.status_code)
+            net_logger.error("Upload archive failed with status code  %s", upload.status_code)
             return upload
         try:
             self.config.account_number = the_json["upload"]["account_number"]
         except:
             self.config.account_number = None
-        logger.debug("Upload duration: %s", upload.elapsed)
+        net_logger.debug("Upload duration: %s", upload.elapsed)
         return upload
 
     def upload_archive(self, data_collected, content_type, duration):
@@ -865,7 +865,7 @@ class InsightsConnection(object):
         try:
             c_facts = get_canonical_facts()
         except Exception as e:
-            logger.debug('Error getting canonical facts: %s', e)
+            net_logger.debug('Error getting canonical facts: %s', e)
         if self.config.display_name:
             # add display_name to canonical facts
             c_facts['display_name'] = self.config.display_name
@@ -873,31 +873,31 @@ class InsightsConnection(object):
             c_facts["branch_info"] = self.config.branch_info
             c_facts["satellite_id"] = self.config.branch_info["remote_leaf"]
         c_facts = json.dumps(c_facts)
-        logger.debug('Canonical facts collected:\n%s', c_facts)
+        net_logger.debug('Canonical facts collected:\n%s', c_facts)
 
         files = {
             'file': (file_name, open(data_collected, 'rb'), content_type),
             'metadata': c_facts
         }
-        logger.debug("Uploading %s to %s", data_collected, upload_url)
+        net_logger.debug("Uploading %s to %s", data_collected, upload_url)
 
         net_logger.info("POST %s", upload_url)
         upload = self.session.post(upload_url, files=files, headers={})
 
-        logger.debug("Upload status: %s %s %s",
+        net_logger.debug("Upload status: %s %s %s",
                      upload.status_code, upload.reason, upload.text)
-        logger.debug('Request ID: %s', upload.headers.get('x-rh-insights-request-id', None))
+        net_logger.debug('Request ID: %s', upload.headers.get('x-rh-insights-request-id', None))
         if upload.status_code in (200, 202):
             # 202 from platform, no json response
-            logger.debug(upload.text)
+            net_logger.debug(upload.text)
             # upload = registration on platform
             write_registered_file()
         else:
-            logger.debug(
+            net_logger.debug(
                 "Upload archive failed with status code %s",
                 upload.status_code)
             return upload
-        logger.debug("Upload duration: %s", upload.elapsed)
+        net_logger.debug("Upload duration: %s", upload.elapsed)
         return upload
 
     # -LEGACY-
@@ -933,7 +933,7 @@ class InsightsConnection(object):
                              res.status_code, res.text)
                 return False
         except (requests.ConnectionError, requests.Timeout, ValueError) as e:
-            logger.error(e)
+            net_logger.error(e)
             # can't connect, run connection test
             return False
 
@@ -954,8 +954,8 @@ class InsightsConnection(object):
             net_logger.info("PATCH %s", req_url)
             res = self.session.patch(req_url, json={'display_name': display_name})
         except (requests.ConnectionError, requests.Timeout) as e:
-            logger.error(e)
-            logger.error('The Insights API could not be reached.')
+            net_logger.error(e)
+            net_logger.error('The Insights API could not be reached.')
             return False
         if (self.handle_fail_rcs(res)):
             logger.error('Could not update display name.')
@@ -978,11 +978,11 @@ class InsightsConnection(object):
             net_logger.info("GET %s", diag_url)
             res = self.session.get(diag_url, params=params, timeout=self.config.http_timeout)
         except (requests.ConnectionError, requests.Timeout) as e:
-            logger.error(e)
-            logger.error('The Insights API could not be reached.')
+            net_logger.error(e)
+            net_logger.error('The Insights API could not be reached.')
             return False
         if (self.handle_fail_rcs(res)):
-            logger.error('Unable to get diagnosis data: %s %s',
+            net_logger.error('Unable to get diagnosis data: %s %s',
                          res.status_code, res.text)
             return None
         return res.json()
