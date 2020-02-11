@@ -14,10 +14,14 @@ from .utilities import (generate_machine_id,
                         write_unregistered_file,
                         delete_registered_file,
                         delete_unregistered_file,
+<<<<<<< HEAD
                         delete_cache_files,
                         determine_hostname,
                         read_pidfile,
                         systemd_notify)
+=======
+                        determine_hostname)
+>>>>>>> move pid logic to get around circular import
 from .collection_rules import InsightsUploadConf
 from .data_collector import DataCollector
 from .connection import InsightsConnection
@@ -25,6 +29,7 @@ from .archive import InsightsArchive
 from .support import registration_check
 from .constants import InsightsConstants as constants
 from .schedule import get_scheduler
+from insights.util.pid import read_pidfile, systemd_notify
 
 NETWORK = constants.custom_network_log_level
 LOG_FORMAT = ("%(asctime)s %(levelname)8s %(name)s %(message)s")

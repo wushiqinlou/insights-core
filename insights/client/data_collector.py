@@ -10,7 +10,6 @@ from tempfile import NamedTemporaryFile
 from insights import collect
 
 from ..contrib.soscleaner import SOSCleaner
-# from .utilities import get_version_info, read_pidfile, get_tags
 from .utilities import get_version_info, get_tags
 from .constants import InsightsConstants as constants
 
@@ -85,7 +84,6 @@ class DataCollector(object):
         Returns:
             A filepath for the collected archive.
         '''
-        # parent_pid = read_pidfile()  # TODO: leverage this in core collection
         if rm_conf is None:
             rm_conf = {}
         logger.debug('Beginning to run collection...')
