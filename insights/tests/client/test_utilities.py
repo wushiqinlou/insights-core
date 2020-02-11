@@ -6,7 +6,6 @@ from insights.client.constants import InsightsConstants as constants
 from insights.client.config import InsightsConfig
 import re
 import mock
-import six
 from mock.mock import patch
 
 
