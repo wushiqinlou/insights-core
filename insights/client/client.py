@@ -282,8 +282,7 @@ def collect(config, pconn):
     msg_name = determine_hostname(config.display_name)
     dc = DataCollector(config, archive, mountpoint=mp)
     logger.info('Starting to collect Insights data for %s', msg_name)
-    dc.run_collection(rm_conf, branch_info)
-    output = dc.done(rm_conf)
+    output = dc.run_collection(rm_conf, branch_info)
     return output
 
 
