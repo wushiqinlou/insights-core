@@ -10,7 +10,7 @@ import logging
 import tempfile
 import atexit
 
-from .utilities import write_data_to_file
+from .utilities import write_data_to_file, _expand_paths
 
 logger = logging.getLogger(__name__)
 
