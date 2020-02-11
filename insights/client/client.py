@@ -283,7 +283,7 @@ def collect(config, pconn):
     dc = DataCollector(config, archive, mountpoint=mp)
     logger.info('Starting to collect Insights data for %s', msg_name)
     dc.run_collection(rm_conf, branch_info)
-    tar_file = dc.done(rm_conf)
+    output = dc.done(rm_conf)
     return output
 
 

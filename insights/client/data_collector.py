@@ -98,6 +98,8 @@ class DataCollector(object):
                 logger.debug('Patterns section of remove.conf is empty.')
 
         collected_data_path = collect.collect(tmp_path=self.archive.tmp_dir, rm_conf=rm_conf)
+
+        # update the archive object with the reported data location from Insights Core
         self.archive.update(collected_data_path)
         logger.debug('Collection finished.')
 
