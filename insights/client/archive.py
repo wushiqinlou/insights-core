@@ -48,6 +48,36 @@ class InsightsArchive(object):
         """
         return os.path.join(self.archive_dir, path.lstrip('/'))
 
+    def _copy_file(self, path):
+        """
+        Copy just a single file
+        """
+        full_path = self.get_full_archive_path(path)
+        # Try to make the dir, eat exception if it fails
+        try:
+            os.makedirs(os.path.dirname(full_path))
+        except OSError:
+            pass
+        logger.debug("Copying %s to %s", path, full_path)
+        shutil.copyfile(path, full_path)
+        return path
+
+    def copy_file(self, path):
+        """
+        Copy a single file or regex, creating the necessary directories
+        """
+        if "*" in path:
+            paths = _expand_paths(path)
+            if paths:
+                for path in paths:
+                    self._copy_file(path)
+        else:
+            if os.path.isfile(path):
+                return self._copy_file(path)
+            else:
+                logger.debug("File %s does not exist", path)
+                return False
+
     def get_compression_flag(self, compressor):
         return {
             "gz": "z",
@@ -90,7 +120,7 @@ class InsightsArchive(object):
         """
         Delete the entire archive dir
         """
-        logger.debug("Deleting: " + self.archive_dir)
+        # logger.debug("Deleting: " + self.archive_dir)
         shutil.rmtree(self.archive_dir, True)
 
     def delete_archive_file(self):
