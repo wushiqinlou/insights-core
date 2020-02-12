@@ -175,7 +175,7 @@ class FileProvider(ContentProvider):
 
     def validate(self):
         if not blacklist.allow_file("/" + self.relative_path):
-            log.warning("WARNING: Skipping file %s", self.relative_path)
+            log.warning("WARNING: Skipping file %s", "/" + self.relative_path)
             raise dr.SkipComponent()
 
         if not os.path.exists(self.path):
