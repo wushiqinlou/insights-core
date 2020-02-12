@@ -50,11 +50,13 @@ class InsightsUploadConf(object):
 
             # add tokens to limit regex handling (for now)
             #   core parses blacklist for files and commands as regex
-            for idx, f in enumerate(rm_conf['files']):
-                rm_conf['files'][idx] = '^' + f + '$'
+            if 'files' in rm_conf:
+                for idx, f in enumerate(rm_conf['files']):
+                    rm_conf['files'][idx] = '^' + f + '$'
 
-            for idx, c in enumerate(rm_conf['commands']):
-                rm_conf['commands'][idx] = '^' + c + '$'
+            if 'commands' in rm_conf:
+                for idx, c in enumerate(rm_conf['commands']):
+                    rm_conf['commands'][idx] = '^' + c + '$'
 
             return rm_conf
         except ConfigParser.Error as e:
