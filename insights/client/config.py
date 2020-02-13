@@ -160,6 +160,12 @@ DEFAULT_OPTS = {
         'action': 'store_true',
         'group': 'debug'
     },
+    'list': {
+        'default': False,
+        'opt': ['--list'],
+        'help': 'Show list of all commands and files collected by Insights',
+        'action': 'store_true'
+    },
     'logging_file': {
         'default': constants.default_log_file,
         'opt': ['--logging-file'],
