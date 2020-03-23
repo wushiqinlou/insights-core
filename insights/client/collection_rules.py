@@ -369,7 +369,7 @@ class InsightsUploadConf(object):
             logger.warning('WARNING: %s', e)
         loaded = load_yaml(fname)
         if fname == self.redaction_file:
-            err, msg = correct_format(loaded, ('commands', 'files'), fname)
+            err, msg = correct_format(loaded, ('commands', 'files', 'datasources'), fname)
         elif fname == self.content_redaction_file:
             err, msg = correct_format(loaded, ('patterns', 'keywords'), fname)
         if err:
@@ -440,6 +440,8 @@ class InsightsUploadConf(object):
                     num_commands = length(self.rm_conf['commands'])
                 if key == 'files':
                     num_files = length(self.rm_conf['files'])
+                if key == 'datasources':
+                    num_datasources = length(self.rm_conf['datasources'])
                 if key == 'patterns':
                     if isinstance(self.rm_conf['patterns'], dict):
                         num_patterns = length(self.rm_conf['patterns']['regex'])
@@ -454,6 +456,7 @@ class InsightsUploadConf(object):
         output['obfuscate_hostname'] = self.config.obfuscate_hostname
         output['commands'] = num_commands
         output['files'] = num_files
+        output['datasources'] = num_datasources
         output['patterns'] = num_patterns
         output['keywords'] = num_keywords
         output['using_new_format'] = self.using_new_format
