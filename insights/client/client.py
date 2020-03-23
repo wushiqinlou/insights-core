@@ -15,9 +15,7 @@ from .utilities import (generate_machine_id,
                         delete_registered_file,
                         delete_unregistered_file,
                         delete_cache_files,
-                        determine_hostname,
-                        read_pidfile,
-                        systemd_notify)
+                        determine_hostname)
 from .collection_rules import InsightsUploadConf
 from .data_collector import DataCollector
 from .connection import InsightsConnection
@@ -25,6 +23,7 @@ from .archive import InsightsArchive
 from .support import registration_check
 from .constants import InsightsConstants as constants
 from .schedule import get_scheduler
+from insights.util.pid import read_pidfile, systemd_notify
 
 NETWORK = constants.custom_network_log_level
 LOG_FORMAT = ("%(asctime)s %(levelname)8s %(name)s %(message)s")
@@ -250,15 +249,6 @@ def get_machine_id():
     return generate_machine_id()
 
 
-def update_rules(config, pconn):
-    if not pconn:
-        raise ValueError('ERROR: Cannot update rules in --offline mode. '
-                         'Disable auto_update in config file.')
-
-    pc = InsightsUploadConf(config, conn=pconn)
-    return pc.get_conf_update()
-
-
 def get_branch_info(config):
     """
     Get branch info for a system
@@ -280,7 +270,6 @@ def collect(config, pconn):
     pc = InsightsUploadConf(config)
     output = None
 
-    collection_rules = pc.get_conf_file()
     rm_conf = pc.get_rm_conf()
     blacklist_report = pc.create_report()
     if rm_conf:
@@ -293,8 +282,7 @@ def collect(config, pconn):
     msg_name = determine_hostname(config.display_name)
     dc = DataCollector(config, archive, mountpoint=mp)
     logger.info('Starting to collect Insights data for %s', msg_name)
-    dc.run_collection(collection_rules, rm_conf, branch_info, blacklist_report)
-    output = dc.done(collection_rules, rm_conf)
+    output = dc.run_collection(collection_rules, rm_conf, branch_info, blacklist_report)
     return output
 
 

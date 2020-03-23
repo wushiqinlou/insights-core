@@ -65,6 +65,7 @@ from functools import reduce as _reduce
 from insights.contrib import importlib
 from insights.contrib.toposort import toposort_flatten
 from insights.util import defaults, enum, KeyPassingDefaultDict
+from insights.util.pid import read_pidfile, systemd_notify
 
 log = logging.getLogger(__name__)
 
@@ -945,6 +946,9 @@ def run(components=None, broker=None):
         broker (Broker): Optionally pass a broker to use for evaluation. One is
             created by default, but it's often useful to seed a broker with an
             initial dependency.
+        parent_pid (str): The PID, if any, of the insights-client parent
+            process, used to notify the systemd watchdog that we're still
+            running.
     Returns:
         Broker: The broker after evaluation.
     """
@@ -952,8 +956,16 @@ def run(components=None, broker=None):
     components = _determine_components(components)
     broker = broker or Broker()
 
+    # read the pidfile for insights-client
+    parent_pid = read_pidfile()
+
     for component in run_order(components):
         start = time.time()
+
+        # ping systemd if core is being run from the client
+        if parent_pid:
+            systemd_notify(parent_pid)
+
         try:
             if (component not in broker and component in components and
                component in DELEGATES and

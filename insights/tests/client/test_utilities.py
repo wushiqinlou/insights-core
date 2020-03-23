@@ -6,8 +6,11 @@ from insights.client.constants import InsightsConstants as constants
 from insights.client.config import InsightsConfig
 import re
 import mock
+<<<<<<< HEAD
 import six
 import pytest
+=======
+>>>>>>> core-collect-4
 from mock.mock import patch
 
 
@@ -162,87 +165,87 @@ def test_delete_unregistered_file():
         assert os.path.isfile(u) is False
 
 
-def test_read_pidfile():
-    '''
-    Test a pidfile that exists
-    '''
-    if six.PY3:
-        open_name = 'builtins.open'
-    else:
-        open_name = '__builtin__.open'
+# def test_read_pidfile():
+#     '''
+#     Test a pidfile that exists
+#     '''
+#     if six.PY3:
+#         open_name = 'builtins.open'
+#     else:
+#         open_name = '__builtin__.open'
 
-    with patch(open_name, create=True) as mock_open:
-        mock_open.side_effect = [mock.mock_open(read_data='420').return_value]
-        assert util.read_pidfile() == '420'
-
-
-def test_read_pidfile_failure():
-    '''
-    Test a pidfile that does not exist
-    '''
-    if six.PY3:
-        open_name = 'builtins.open'
-    else:
-        open_name = '__builtin__.open'
-
-    with patch(open_name, create=True) as mock_open:
-        mock_open.side_effect = IOError
-        assert util.read_pidfile() is None
+#     with patch(open_name, create=True) as mock_open:
+#         mock_open.side_effect = [mock.mock_open(read_data='420').return_value]
+#         assert util.read_pidfile() == '420'
 
 
-@patch('insights.client.utilities.Popen')
-@patch('insights.client.utilities.os.path.exists')
-def test_systemd_notify_no_socket(exists, Popen):
-    '''
-    Test this function when NOTIFY_SOCKET is
-    undefined, i.e. when we run the client on demand
-    and not via systemd job
-    '''
-    exists.return_value = True
-    Popen.return_value.communicate.return_value = ('', '')
-    util.systemd_notify('420')
-    Popen.assert_not_called()
+# def test_read_pidfile_failure():
+#     '''
+#     Test a pidfile that does not exist
+#     '''
+#     if six.PY3:
+#         open_name = 'builtins.open'
+#     else:
+#         open_name = '__builtin__.open'
+
+#     with patch(open_name, create=True) as mock_open:
+#         mock_open.side_effect = IOError
+#         assert util.read_pidfile() is None
 
 
-@patch('insights.client.utilities.Popen')
-@patch('insights.client.utilities.os.path.exists')
-@patch.dict('insights.client.utilities.os.environ', {'NOTIFY_SOCKET': '/tmp/test.sock'})
-def test_systemd_notify(exists, Popen):
-    '''
-    Test calling systemd-notify with a "valid" PID
-    On RHEL 7, exists(/usr/bin/systemd-notify) == True
-    '''
-    exists.return_value = True
-    Popen.return_value.communicate.return_value = ('', '')
-    util.systemd_notify('420')
-    Popen.assert_called_once()
+# @patch('insights.client.utilities.Popen')
+# @patch('insights.client.utilities.os.path.exists')
+# def test_systemd_notify_no_socket(exists, Popen):
+#     '''
+#     Test this function when NOTIFY_SOCKET is
+#     undefined, i.e. when we run the client on demand
+#     and not via systemd job
+#     '''
+#     exists.return_value = True
+#     Popen.return_value.communicate.return_value = ('', '')
+#     util.systemd_notify('420')
+#     Popen.assert_not_called()
 
 
-@patch('insights.client.utilities.Popen')
-@patch('insights.client.utilities.os.path.exists')
-@patch.dict('insights.client.utilities.os.environ', {'NOTIFY_SOCKET': '/tmp/test.sock'})
-def test_systemd_notify_failure_bad_pid(exists, Popen):
-    '''
-    Test calling systemd-notify with an invalid PID
-    On RHEL 7, exists(/usr/bin/systemd-notify) == True
-    '''
-    exists.return_value = True
-    util.systemd_notify(None)
-    exists.assert_not_called()
-    Popen.assert_not_called()
+# @patch('insights.client.utilities.Popen')
+# @patch('insights.client.utilities.os.path.exists')
+# @patch.dict('insights.client.utilities.os.environ', {'NOTIFY_SOCKET': '/tmp/test.sock'})
+# def test_systemd_notify(exists, Popen):
+#     '''
+#     Test calling systemd-notify with a "valid" PID
+#     On RHEL 7, exists(/usr/bin/systemd-notify) == True
+#     '''
+#     exists.return_value = True
+#     Popen.return_value.communicate.return_value = ('', '')
+#     util.systemd_notify('420')
+#     Popen.assert_called_once()
 
 
-@patch('insights.client.utilities.Popen')
-@patch('insights.client.utilities.os.path.exists')
-@patch.dict('insights.client.utilities.os.environ', {'NOTIFY_SOCKET': '/tmp/test.sock'})
-def test_systemd_notify_failure_rhel_6(exists, Popen):
-    '''
-    Test calling systemd-notify on RHEL 6
-    On RHEL 6, exists(/usr/bin/systemd-notify) == False
-    '''
-    exists.return_value = False
-    util.systemd_notify('420')
-    Popen.assert_not_called()
+# @patch('insights.client.utilities.Popen')
+# @patch('insights.client.utilities.os.path.exists')
+# @patch.dict('insights.client.utilities.os.environ', {'NOTIFY_SOCKET': '/tmp/test.sock'})
+# def test_systemd_notify_failure_bad_pid(exists, Popen):
+#     '''
+#     Test calling systemd-notify with an invalid PID
+#     On RHEL 7, exists(/usr/bin/systemd-notify) == True
+#     '''
+#     exists.return_value = True
+#     util.systemd_notify(None)
+#     exists.assert_not_called()
+#     Popen.assert_not_called()
+
+
+# @patch('insights.client.utilities.Popen')
+# @patch('insights.client.utilities.os.path.exists')
+# @patch.dict('insights.client.utilities.os.environ', {'NOTIFY_SOCKET': '/tmp/test.sock'})
+# def test_systemd_notify_failure_rhel_6(exists, Popen):
+#     '''
+#     Test calling systemd-notify on RHEL 6
+#     On RHEL 6, exists(/usr/bin/systemd-notify) == False
+#     '''
+#     exists.return_value = False
+#     util.systemd_notify('420')
+#     Popen.assert_not_called()
 
 
 def test_get_tags():
