@@ -179,7 +179,7 @@ class DataCollector(object):
         else:
             return [spec]
 
-    def run_collection(self, conf, rm_conf, branch_info, blacklist_report):
+    def run_collection(self, rm_conf, branch_info, blacklist_report):
         '''
         Run specs and collect all the data
 

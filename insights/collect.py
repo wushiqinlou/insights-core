@@ -248,9 +248,13 @@ def collect(manifest=default_manifest, tmp_path=None, compress=False, rm_conf={}
     apply_blacklist(client.get("blacklist", {}))
     apply_blacklist(rm_conf)
 
-    # skip components
+    # skip components in blacklist
     for component in rm_conf['components']:
-        dr.set_enabled(component, enabled=False)
+        if not dr.get_component_by_name(component):
+            # TODO: set up logging in this module
+            print('WARNING: Unknown component: %s' % component)
+        else:
+            dr.set_enabled(component, enabled=False)
 
     to_persist = get_to_persist(client.get("persist", set()))
 
