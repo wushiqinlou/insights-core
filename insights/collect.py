@@ -251,8 +251,7 @@ def collect(manifest=default_manifest, tmp_path=None, compress=False, rm_conf={}
     # skip components in blacklist
     for component in rm_conf['components']:
         if not dr.get_component_by_name(component):
-            # TODO: set up logging in this module
-            print('WARNING: Unknown component: %s' % component)
+            log.warning('WARNING: Unknown component in blacklist: %s' % component)
         else:
             dr.set_enabled(component, enabled=False)
 
