@@ -254,6 +254,7 @@ def collect(manifest=default_manifest, tmp_path=None, compress=False, rm_conf={}
             log.warning('WARNING: Unknown component in blacklist: %s' % component)
         else:
             dr.set_enabled(component, enabled=False)
+            log.warning('WARNING: Skipping component: %s', component)
 
     to_persist = get_to_persist(client.get("persist", set()))
 
