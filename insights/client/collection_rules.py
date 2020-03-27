@@ -327,6 +327,7 @@ class InsightsUploadConf(object):
         num_files = 0
         num_patterns = 0
         num_keywords = 0
+        num_components = 0
         using_regex = False
         using_new_format = False
 
