@@ -7,7 +7,8 @@ from logging import getLogger
 from platform import linux_distribution
 from re import findall
 from sys import exit
-from insights.util.subproc import call
+from insights.client.utilities import run_command_get_output
+from operator import itemgetter
 import os
 
 NONCOMPLIANT_STATUS = 2
@@ -85,7 +86,8 @@ class ComplianceClient:
         return glob("{0}*rhel{1}*.xml".format(POLICY_FILE_LOCATION, self.os_release()))
 
     def find_scap_policy(self, profile_ref_id):
-        rc, grep = call('grep ' + profile_ref_id + ' ' + ' '.join(self.profile_files()), keep_rc=True)
+        rc, grep = itemgetter('status', 'output')(
+            run_command_get_output('grep ' + profile_ref_id + ' ' + ' '.join(self.profile_files())))
         if rc:
             logger.error('XML profile file not found matching ref_id {0}\n{1}\n'.format(profile_ref_id, grep))
             exit(constants.sig_kill_bad)
@@ -107,7 +109,8 @@ class ComplianceClient:
         env = os.environ.copy()
         env.update({'TZ': 'UTC'})
         oscap_command = self.build_oscap_command(profile_ref_id, policy_xml, output_path, tailoring_file_path)
-        rc, oscap = call(oscap_command, keep_rc=True, env=env)
+        rc, oscap = itemgetter('status', 'output')(
+            run_command_get_output(oscap_command, env=env))
         if rc and rc != NONCOMPLIANT_STATUS:
             logger.error('Scan failed')
             logger.error(oscap)
@@ -116,7 +119,8 @@ class ComplianceClient:
             self.archive.copy_file(output_path)
 
     def _assert_oscap_rpms_exist(self):
-        rc, rpm = call('rpm -qa ' + ' '.join(REQUIRED_PACKAGES), keep_rc=True)
+        rc, rpm = itemgetter('status', 'output')(
+            run_command_get_output('rpm -qa ' + ' '.join(REQUIRED_PACKAGES)))
         if rc:
             logger.error('Tried running rpm -qa but failed: {0}.\n'.format(rpm))
             exit(constants.sig_kill_bad)

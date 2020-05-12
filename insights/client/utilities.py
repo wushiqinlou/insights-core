@@ -209,9 +209,9 @@ def magic_plan_b(filename):
     return mime_str
 
 
-def run_command_get_output(cmd):
+def run_command_get_output(cmd, env=None):
     proc = Popen(shlex.split(cmd),
-                 stdout=PIPE, stderr=STDOUT)
+                 stdout=PIPE, stderr=STDOUT, env=env)
     stdout, stderr = proc.communicate()
 
     return {
