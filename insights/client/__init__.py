@@ -12,6 +12,10 @@ from .. import package_info
 from . import client
 from .constants import InsightsConstants as constants
 from .config import InsightsConfig
+from .connection import InsightsConnection
+from .collection_rules import InsightsUploadConf
+from .archive import InsightsArchive
+from .data_collector import DataCollector
 from .auto_config import try_auto_configuration
 from .utilities import (delete_registered_file,
                         delete_unregistered_file,
@@ -19,7 +23,7 @@ from .utilities import (delete_registered_file,
                         generate_machine_id,
                         get_tags,
                         write_tags,
-                        migrate_tags)
+                        determine_hostname)
 
 NETWORK = constants.custom_network_log_level
 logger = logging.getLogger(__name__)
@@ -52,21 +56,25 @@ class InsightsClient(object):
         if setup_logging:
             self.set_up_logging()
             try_auto_configuration(self.config)
-            self.initialize_tags()
         else:
             # write PID to file in case we need to ping systemd
             write_to_disk(constants.pidfile, content=str(os.getpid()))
         # setup insights connection placeholder
         # used for requests
-        self.session = None
         self.connection = None
+
+        if self.config.group:
+            tags = get_tags()
+            if tags is None:
+                tags = {}
+            tags["group"] = self.config.group
+            write_tags(tags)
 
     def _net(func):
         def _init_connection(self, *args, **kwargs):
             # setup a request session
-            if not self.config.offline and not self.session:
-                self.connection = client.get_connection(self.config)
-                self.session = self.connection.session
+            if not self.config.offline and not self.connection:
+                self.connection = InsightsConnection(self.config)
             return func(self, *args, **kwargs)
         return _init_connection
 
@@ -90,9 +98,14 @@ class InsightsClient(object):
     @_net
     def branch_info(self):
         """
-            returns (dict): {'remote_leaf': -1, 'remote_branch': -1}
+        returns (dict): {'remote_leaf': -1, 'remote_branch': -1}
         """
-        return client.get_branch_info(self.config, self.connection)
+        # in the case we are running on offline mode
+        # or we are analyzing a running container/image
+        # or tar file, mountpoint, simply return the default branch info
+        if self.config.offline:
+            return constants.default_branch_info
+        return self.config.branch_info
 
     def fetch(self, force=False):
         """
@@ -169,14 +182,13 @@ class InsightsClient(object):
 
         # If the etag was found and we are not force fetching
         # Then add it to the request
-        logger.log(NETWORK, "GET %s", url)
         if current_etag and not force:
             logger.debug('Requesting new file with etag %s', current_etag)
             etag_headers = {'If-None-Match': current_etag}
-            response = self.session.get(url, headers=etag_headers, timeout=self.config.http_timeout)
+            response = self.connection.get(url, headers=etag_headers)
         else:
             logger.debug('Found no etag or forcing fetch')
-            response = self.session.get(url, timeout=self.config.http_timeout)
+            response = self.connection.get(url)
 
         # Debug information
         logger.debug('Status code: %d', response.status_code)
@@ -349,12 +361,29 @@ class InsightsClient(object):
 
     @_net
     def collect(self):
-        # return collection results
-        tar_file = client.collect(self.config, self.connection)
+        """
+        All the heavy lifting done here
+        """
+        branch_info = self.branch_info()
+        pc = InsightsUploadConf(self.config)
+        output = None
 
-        # it is important to note that --to-stdout is utilized via the wrapper RPM
-        # this file is received and then we invoke shutil.copyfileobj
-        return tar_file
+        collection_rules = pc.get_conf_file()
+        rm_conf = pc.get_rm_conf()
+        blacklist_report = pc.create_report()
+        if rm_conf:
+            logger.warn("WARNING: Excluding data from files")
+
+        # defaults
+        mp = None
+        archive = InsightsArchive(self.config)
+
+        msg_name = determine_hostname(self.config.display_name)
+        dc = DataCollector(self.config, archive, mountpoint=mp)
+        logger.info('Starting to collect Insights data for %s', msg_name)
+        dc.run_collection(collection_rules, rm_conf, branch_info, blacklist_report)
+        output = dc.done(collection_rules, rm_conf)
+        return output
 
     @_net
     def register(self):
@@ -389,8 +418,11 @@ class InsightsClient(object):
         if not os.path.exists(payload):
             raise IOError('Cannot upload %s: File does not exist.' % payload)
 
-        upload_results = client.upload(
-            self.config, self.connection, payload, content_type)
+        upload_results = self.connection.upload_archive(payload, content_type)
+
+        if upload_results and self.config.register:
+            # direct to console after register + upload
+            logger.info('View the Red Hat Insights console at https://cloud.redhat.com/insights/')
 
         # return api response
         return upload_results
@@ -608,21 +640,6 @@ class InsightsClient(object):
         logger.info('Collected data copied to %s', self.config.output_file)
         if self.config.obfuscate:
             self._copy_soscleaner_files(insights_archive)
-
-    def initialize_tags(self):
-        '''
-        Initialize the tags file if needed
-        '''
-        # migrate the old file if necessary
-        migrate_tags()
-
-        # initialize with group if group was specified
-        if self.config.group:
-            tags = get_tags()
-            if tags is None:
-                tags = {}
-            tags["group"] = self.config.group
-            write_tags(tags)
 
 
 def format_config(config):
