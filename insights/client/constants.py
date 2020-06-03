@@ -45,3 +45,4 @@ class InsightsConstants(object):
     cached_branch_info = os.path.join(default_conf_dir, '.branch_info')
     pidfile = os.path.join(os.sep, 'var', 'run', 'insights-client.pid')
     valid_compressors = ("gz", "xz", "bz2", "none")
+    rhsm_facts_dir = os.path.join(os.sep, 'etc', 'rhsm', 'facts')
