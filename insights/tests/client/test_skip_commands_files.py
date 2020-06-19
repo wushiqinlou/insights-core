@@ -85,6 +85,8 @@ def test_dont_archive_when_command_not_found(write_data_to_file):
     If the command is not found do not archive it
     """
     arch = InsightsArchive(InsightsConfig())
+    arch.archive_dir = arch.create_archive_dir()
+    arch.cmd_dir = arch.create_command_dir()
 
     cmd = MagicMock(spec=InsightsCommand)
     cmd.get_output.return_value = 'timeout: failed to run command blah: No such file or directory'
@@ -105,6 +107,8 @@ def test_dont_archive_when_missing_dep(write_data_to_file):
     If missing dependencies do not archive it
     """
     arch = InsightsArchive(InsightsConfig())
+    arch.archive_dir = arch.create_archive_dir()
+    arch.cmd_dir = arch.create_command_dir()
 
     cmd = MagicMock(spec=InsightsCommand)
     cmd.get_output.return_value = "Missing Dependencies:"
