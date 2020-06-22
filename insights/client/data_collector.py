@@ -16,7 +16,7 @@ from tempfile import NamedTemporaryFile
 
 from insights.util import mangle
 from ..contrib.soscleaner import SOSCleaner
-from .utilities import _expand_paths, get_version_info, read_pidfile, get_tags
+from .utilities import _expand_paths, get_version_info, systemd_notify_init_thread, get_tags
 from .constants import InsightsConstants as constants
 from .insights_spec import InsightsFile, InsightsCommand
 from .archive import InsightsArchive
@@ -237,7 +237,9 @@ class DataCollector(object):
         '''
         Run specs and collect all the data
         '''
-        parent_pid = read_pidfile()
+        # initialize systemd-notify thread
+        systemd_notify_init_thread()
+
         if rm_conf is None:
             rm_conf = {}
         logger.debug('Beginning to run collection spec...')
@@ -266,7 +268,7 @@ class DataCollector(object):
                     if s['command'] in rm_commands:
                         logger.warn("WARNING: Skipping command %s", s['command'])
                         continue
-                    cmd_spec = InsightsCommand(self.config, s, exclude, self.mountpoint, parent_pid)
+                    cmd_spec = InsightsCommand(self.config, s, exclude, self.mountpoint)
                     self.archive.add_to_archive(cmd_spec)
         for f in conf['files']:
             rm_files = rm_conf.get('files', [])
@@ -279,7 +281,7 @@ class DataCollector(object):
                     if s['file'] in rm_conf.get('files', []):
                         logger.warn("WARNING: Skipping file %s", s['file'])
                     else:
-                        file_spec = InsightsFile(s, exclude, self.mountpoint, parent_pid)
+                        file_spec = InsightsFile(s, exclude, self.mountpoint)
                         self.archive.add_to_archive(file_spec)
         if 'globs' in conf:
             for g in conf['globs']:
@@ -288,7 +290,7 @@ class DataCollector(object):
                     if g['file'] in rm_conf.get('files', []):
                         logger.warn("WARNING: Skipping file %s", g)
                     else:
-                        glob_spec = InsightsFile(g, exclude, self.mountpoint, parent_pid)
+                        glob_spec = InsightsFile(g, exclude, self.mountpoint)
                         self.archive.add_to_archive(glob_spec)
         logger.debug('Spec collection finished.')
 
