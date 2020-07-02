@@ -336,9 +336,9 @@ class InsightsUploadConf(object):
                     raise RuntimeError('ERROR: Unknown key in remove.conf: ' + item +
                                        '\nValid keys are ' + ', '.join(expected_keys) + '.')
                 if six.PY3:
-                    rm_conf[item] = value.strip().encode('utf-8').decode('unicode-escape').split(',')
+                    rm_conf[item] = [v.strip() for v in value.strip().encode('utf-8').decode('unicode-escape').split(',')]
                 else:
-                    rm_conf[item] = value.strip().decode('string-escape').split(',')
+                    rm_conf[item] = [v.strip() for v in value.strip().decode('string-escape').split(',')]
             self.rm_conf = rm_conf
         except ConfigParser.Error as e:
             # can't parse config file at all
@@ -435,7 +435,7 @@ class InsightsUploadConf(object):
             return None
         # Using print here as this could contain sensitive information
         print('Blacklist configuration parsed contents:')
-        print(success)
+        print(json.dumps(success, indent=4))
         logger.info('Parsed successfully.')
         return True
 
