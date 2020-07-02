@@ -7,7 +7,6 @@ import logging
 import textwrap
 
 from .constants import InsightsConstants as constants
-from insights.specs.default import DefaultSpecs
 
 APP_NAME = constants.app_name
 logger = logging.getLogger(__name__)
