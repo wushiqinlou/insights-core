@@ -16,6 +16,7 @@ from six.moves import configparser as ConfigParser
 from subprocess import Popen, PIPE, STDOUT
 from tempfile import NamedTemporaryFile
 from .constants import InsightsConstants as constants
+from .map_components import map_rm_conf_to_components
 
 APP_NAME = constants.app_name
 logger = logging.getLogger(__name__)
@@ -402,11 +403,13 @@ class InsightsUploadConf(object):
         if not redact_conf and not content_redact_conf:
             # no file-redaction.yaml or file-content-redaction.yaml defined,
             #   try to use remove.conf
-            return self.get_rm_conf_old()
+            self.rm_conf = self.get_rm_conf_old()
+            self.rm_conf = map_rm_conf_to_components(self.rm_conf)
+            return self.rm_conf
 
         # remove Nones, empty strings, and empty lists
         filtered_rm_conf = dict((k, v) for k, v in rm_conf.items() if v)
-        self.rm_conf = filtered_rm_conf
+        self.rm_conf = map_rm_conf_to_components(self.rm_conf)
         return filtered_rm_conf
 
     def get_tags_conf(self):
@@ -493,6 +496,6 @@ if __name__ == '__main__':
     config = InsightsConfig().load_all()
     uploadconf = InsightsUploadConf(config)
     uploadconf.validate()
-    report = uploadconf.create_report()
+    # report = uploadconf.create_report()
 
-    print(report)
+    # print(report)
